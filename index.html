@@ -75,9 +75,19 @@ const DEFAULT = {
 //   separate tables with id (uuid/serial), created_at
 // ─────────────────────────────────────────────
 
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(fallback), ms))
+  ]);
+}
 async function loadSection(key) {
   try {
-    const {data,error} = await sb.from("portfolio_settings").select("value").eq("key",key).single();
+    const result = await withTimeout(
+      sb.from("portfolio_settings").select("value").eq("key",key).single(),
+      4000, {data:null, error:"timeout"}
+    );
+    const {data,error} = result;
     if (error||!data) return DEFAULT[key];
     return data.value;
   } catch { return DEFAULT[key]; }
@@ -88,7 +98,11 @@ async function saveSection(key,value) {
 }
 async function loadCollection(table) {
   try {
-    const {data,error} = await sb.from(table).select("*").order("created_at",{ascending:true});
+    const result = await withTimeout(
+      sb.from(table).select("*").order("created_at",{ascending:true}),
+      4000, {data:null, error:"timeout"}
+    );
+    const {data,error} = result;
     if (error||!data||data.length===0) return DEFAULT[table]||[];
     return data;
   } catch { return DEFAULT[table]||[]; }
@@ -120,17 +134,32 @@ sb.auth.onAuthStateChange((_,session)=>{
 
 async function loadAll(){
   showLoading(true);
-  portfolioData={
-    hero:          await loadSection("hero"),
-    about:         await loadSection("about"),
-    experience:    await loadCollection("experience"),
-    skills:        await loadSection("skills"),
-    education:     await loadSection("education"),
-    certifications:await loadSection("certifications"),
-    projects:      await loadCollection("projects")
-  };
-  showLoading(false);
-  navigate(currentPage);
+
+  // Safety net: always hide loader after 6 seconds no matter what
+  const safetyTimer = setTimeout(()=>{
+    showLoading(false);
+    if(!portfolioData.hero) portfolioData = { ...DEFAULT };
+    navigate(currentPage);
+  }, 6000);
+
+  try {
+    portfolioData={
+      hero:          await loadSection("hero"),
+      about:         await loadSection("about"),
+      experience:    await loadCollection("experience"),
+      skills:        await loadSection("skills"),
+      education:     await loadSection("education"),
+      certifications:await loadSection("certifications"),
+      projects:      await loadCollection("projects")
+    };
+  } catch(e) {
+    console.warn("Supabase load failed, using defaults:", e);
+    portfolioData = { ...DEFAULT };
+  } finally {
+    clearTimeout(safetyTimer);
+    showLoading(false);
+    navigate(currentPage);
+  }
 }
 function showLoading(on){
   document.getElementById("loading-screen").style.display=on?"flex":"none";
