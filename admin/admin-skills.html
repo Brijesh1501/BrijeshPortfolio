@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Skills — Admin</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-logo"><a href="../index.html">🏠 View Portfolio</a></div>
+    <nav>
+      <a href="dashboard.html" class="admin-nav-item">📊 Dashboard</a>
+      <a href="admin-skills.html" class="admin-nav-item active">⚡ Skills</a>
+      <a href="admin-experience.html" class="admin-nav-item">💼 Experience</a>
+      <a href="admin-projects.html" class="admin-nav-item">🚀 Projects</a>
+      <a href="admin-education.html" class="admin-nav-item">🎓 Education</a>
+      <a href="admin-certifications.html" class="admin-nav-item">🏆 Certifications</a>
+      <a href="admin-settings.html" class="admin-nav-item">⚙️ Settings</a>
+      <a href="#" class="admin-nav-item" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+  
+  <main class="admin-content">
+    <div class="admin-header">
+      <div class="admin-title">⚡ Manage Skills</div>
+      <button class="btn btn-primary" onclick="openModal()">+ Add Skill</button>
+    </div>
+    
+    <div class="card">
+      <div id="skillsTable">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add Skill</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <input type="hidden" id="editId" />
+    <div class="form-group">
+      <label class="form-label">Skill Name *</label>
+      <input type="text" class="form-input" id="fName" placeholder="e.g. Microsoft Excel" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category *</label>
+      <input type="text" class="form-input" id="fCategory" placeholder="e.g. Tools & Platforms" list="catList" />
+      <datalist id="catList">
+        <option value="Tools & Platforms">
+        <option value="Data & Research">
+        <option value="Programming">
+        <option value="Soft Skills">
+      </datalist>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Proficiency Level (0-100)</label>
+      <input type="number" class="form-input" id="fLevel" min="0" max="100" value="80" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon (emoji)</label>
+      <input type="text" class="form-input" id="fIcon" placeholder="e.g. 📊" maxlength="4" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sort Order</label>
+      <input type="number" class="form-input" id="fOrder" value="0" />
+    </div>
+    <div style="display:flex; gap:0.75rem; justify-content:flex-end; margin-top:0.5rem">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSkill()">Save Skill</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script>
+let editingId = null;
+
+async function checkAuth() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) { window.location.href = 'login.html'; return false; }
+  return true;
+}
+
+async function loadSkills() {
+  const { data } = await supabase.from('skills').select('*').order('category').order('sort_order');
+  const el = document.getElementById('skillsTable');
+  
+  if (!data || data.length === 0) {
+    el.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:2rem">No skills yet. Add your first skill!</div>';
+    return;
+  }
+  
+  el.innerHTML = `
+    <table class="admin-table">
+      <thead><tr><th>Skill</th><th>Category</th><th>Level</th><th>Icon</th><th>Order</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${data.map(s => `
+          <tr>
+            <td><strong>${s.name}</strong></td>
+            <td><span class="tag">${s.category}</span></td>
+            <td>
+              <div style="display:flex; align-items:center; gap:0.5rem">
+                <div style="width:60px; height:4px; background:var(--border-subtle); border-radius:2px; overflow:hidden">
+                  <div style="width:${s.level}%; height:100%; background:var(--gradient-accent); border-radius:2px"></div>
+                </div>
+                <span style="font-family:'Space Mono',monospace; font-size:0.7rem; color:var(--accent)">${s.level}%</span>
+              </div>
+            </td>
+            <td style="font-size:1.25rem">${s.icon || '—'}</td>
+            <td style="font-family:'Space Mono',monospace; font-size:0.75rem">${s.sort_order}</td>
+            <td>
+              <div style="display:flex; gap:0.4rem">
+                <button class="btn btn-outline btn-sm" onclick="editSkill('${s.id}','${s.name.replace(/'/g,"\\'")}','${s.category}',${s.level},'${s.icon||''}',${s.sort_order})">Edit</button>
+                <button class="btn btn-sm" style="background:rgba(255,107,107,0.1); border:1px solid rgba(255,107,107,0.3); color:var(--accent-3)" onclick="deleteSkill('${s.id}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function openModal(id) {
+  editingId = id || null;
+  document.getElementById('modalTitle').textContent = id ? 'Edit Skill' : 'Add Skill';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+  editingId = null;
+  ['fName','fCategory','fIcon'].forEach(f => document.getElementById(f).value = '');
+  document.getElementById('fLevel').value = '80';
+  document.getElementById('fOrder').value = '0';
+}
+
+function editSkill(id, name, category, level, icon, order) {
+  editingId = id;
+  document.getElementById('fName').value = name;
+  document.getElementById('fCategory').value = category;
+  document.getElementById('fLevel').value = level;
+  document.getElementById('fIcon').value = icon;
+  document.getElementById('fOrder').value = order;
+  document.getElementById('modalTitle').textContent = 'Edit Skill';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+async function saveSkill() {
+  const name = document.getElementById('fName').value.trim();
+  const category = document.getElementById('fCategory').value.trim();
+  const level = parseInt(document.getElementById('fLevel').value) || 80;
+  const icon = document.getElementById('fIcon').value.trim();
+  const sort_order = parseInt(document.getElementById('fOrder').value) || 0;
+  
+  if (!name || !category) { showToast('Name and Category are required.', 'error'); return; }
+  
+  const payload = { name, category, level, icon, sort_order };
+  let error;
+  
+  if (editingId) {
+    ({ error } = await supabase.from('skills').update(payload).eq('id', editingId));
+  } else {
+    ({ error } = await supabase.from('skills').insert(payload));
+  }
+  
+  if (error) { showToast('Error saving skill: ' + error.message, 'error'); return; }
+  showToast('Skill saved!', 'success');
+  closeModal();
+  loadSkills();
+}
+
+async function deleteSkill(id) {
+  if (!confirm('Delete this skill?')) return;
+  const { error } = await supabase.from('skills').delete().eq('id', id);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('Skill deleted.', 'info');
+  loadSkills();
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+  e.preventDefault(); await supabase.auth.signOut(); window.location.href = 'login.html';
+});
+
+(async function() {
+  if (!await checkAuth()) return;
+  await Settings.getAll();
+  loadSkills();
+})();
+</script>
+</body>
+</html>

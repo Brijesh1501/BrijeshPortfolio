@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Portfolio</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .stat-widget {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .stat-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      background: var(--accent-glow);
+      border: 1px solid var(--border);
+    }
+    .stat-val { font-family: 'Syne', sans-serif; font-size: 1.75rem; font-weight: 800; }
+    .stat-lbl { font-size: 0.75rem; color: var(--text-muted); }
+    .msg-row { cursor: pointer; }
+    .msg-row:hover td { background: var(--bg-card-hover); }
+    .msg-unread { font-weight: 600; }
+    .msg-unread td:first-child::before {
+      content: '●';
+      color: var(--accent);
+      margin-right: 0.5rem;
+      font-size: 0.5rem;
+    }
+    .tab-btn { padding: 0.5rem 1rem; border: 1px solid var(--border-subtle); background: none; color: var(--text-secondary); border-radius: 8px; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 0.7rem; transition: all 0.2s; }
+    .tab-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-logo">
+      <a href="../index.html">🏠 View Portfolio</a>
+    </div>
+    <nav>
+      <a href="dashboard.html" class="admin-nav-item active">📊 Dashboard</a>
+      <a href="admin-skills.html" class="admin-nav-item">⚡ Skills</a>
+      <a href="admin-experience.html" class="admin-nav-item">💼 Experience</a>
+      <a href="admin-projects.html" class="admin-nav-item">🚀 Projects</a>
+      <a href="admin-education.html" class="admin-nav-item">🎓 Education</a>
+      <a href="admin-certifications.html" class="admin-nav-item">🏆 Certifications</a>
+      <a href="admin-settings.html" class="admin-nav-item">⚙️ Settings</a>
+      <a href="#" class="admin-nav-item" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+  
+  <!-- Main content -->
+  <main class="admin-content">
+    <div class="admin-header">
+      <div>
+        <div class="admin-title">Dashboard</div>
+        <div style="font-family:'Space Mono',monospace; font-size:0.7rem; color:var(--text-muted)">Welcome back, Brijesh 👋</div>
+      </div>
+      <div style="display:flex; gap:0.75rem">
+        <a href="admin-settings.html" class="btn btn-outline btn-sm">⚙ Settings</a>
+        <a href="../index.html" target="_blank" class="btn btn-primary btn-sm">View Site ↗</a>
+      </div>
+    </div>
+    
+    <!-- Stats -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem" id="statsGrid">
+      <div class="loading-overlay"><div class="spinner"></div></div>
+    </div>
+    
+    <!-- Messages Table -->
+    <div class="card" style="margin-bottom:2rem">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem">
+        <h3 style="font-family:'Syne',sans-serif; font-size:1rem">📬 Recent Messages</h3>
+        <button class="btn btn-outline btn-sm" onclick="loadMessages()">Refresh</button>
+      </div>
+      <div id="messagesTable">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+    
+    <!-- Quick actions -->
+    <div class="card">
+      <h3 style="font-family:'Syne',sans-serif; font-size:1rem; margin-bottom:1.25rem">⚡ Quick Actions</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:0.75rem">
+        <a href="admin-skills.html" class="btn btn-outline">+ Add Skill</a>
+        <a href="admin-experience.html" class="btn btn-outline">+ Add Experience</a>
+        <a href="admin-projects.html" class="btn btn-outline">+ Add Project</a>
+        <a href="admin-settings.html" class="btn btn-outline">⚙ Update Resume URL</a>
+        <a href="admin-settings.html" class="btn btn-outline">🎨 Toggle Theme</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Message Modal -->
+<div class="modal-overlay" id="msgModal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="msgModalTitle">Message</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="msgModalContent"></div>
+    <div style="margin-top:1.5rem; display:flex; justify-content:flex-end; gap:0.75rem">
+      <button class="btn btn-outline btn-sm" id="msgDeleteBtn">🗑 Delete</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script>
+let currentMsgId = null;
+
+async function checkAuth() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) { window.location.href = 'login.html'; return false; }
+  return true;
+}
+
+async function loadStats() {
+  const [{ count: skills }, { count: exp }, { count: projects }, { count: msgs }, { count: unread }] = await Promise.all([
+    supabase.from('skills').select('*', { count: 'exact', head: true }),
+    supabase.from('experience').select('*', { count: 'exact', head: true }),
+    supabase.from('projects').select('*', { count: 'exact', head: true }),
+    supabase.from('messages').select('*', { count: 'exact', head: true }),
+    supabase.from('messages').select('*', { count: 'exact', head: true }).eq('read', false),
+  ]);
+  
+  document.getElementById('statsGrid').innerHTML = [
+    { icon: '⚡', val: skills || 0, lbl: 'Skills' },
+    { icon: '💼', val: exp || 0, lbl: 'Experiences' },
+    { icon: '🚀', val: projects || 0, lbl: 'Projects' },
+    { icon: '📬', val: msgs || 0, lbl: 'Total Messages' },
+    { icon: '🔔', val: unread || 0, lbl: 'Unread' },
+  ].map(s => `
+    <div class="stat-widget">
+      <div class="stat-icon">${s.icon}</div>
+      <div>
+        <div class="stat-val">${s.val}</div>
+        <div class="stat-lbl">${s.lbl}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadMessages() {
+  const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(20);
+  const el = document.getElementById('messagesTable');
+  
+  if (!data || data.length === 0) {
+    el.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:2rem; font-size:0.875rem">No messages yet.</div>';
+    return;
+  }
+  
+  el.innerHTML = `
+    <div style="overflow-x:auto">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Subject</th>
+            <th>Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(m => `
+            <tr class="msg-row ${!m.read ? 'msg-unread' : ''}" onclick="openMessage('${m.id}', '${m.name.replace(/'/g,"\\'")}', '${m.email}', '${(m.subject||'').replace(/'/g,"\\'")}', '${m.message.replace(/'/g,"\\'").replace(/\n/g,'<br>')}', ${m.read})">
+              <td>${m.name}</td>
+              <td style="color:var(--accent)">${m.email}</td>
+              <td>${m.subject || '—'}</td>
+              <td style="font-family:'Space Mono',monospace; font-size:0.7rem">${new Date(m.created_at).toLocaleDateString()}</td>
+              <td><span class="tag ${!m.read ? 'tag-accent' : ''}">${m.read ? 'Read' : 'New'}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openMessage(id, name, email, subject, message, read) {
+  currentMsgId = id;
+  document.getElementById('msgModalTitle').textContent = subject || `Message from ${name}`;
+  document.getElementById('msgModalContent').innerHTML = `
+    <div style="margin-bottom:1rem; padding:0.75rem 1rem; background:var(--bg-secondary); border-radius:8px; font-size:0.8rem">
+      <div><strong>From:</strong> ${name} &lt;${email}&gt;</div>
+    </div>
+    <div style="color:var(--text-secondary); line-height:1.7; font-size:0.9rem">${message}</div>
+  `;
+  document.getElementById('msgModal').style.display = 'flex';
+  if (!read) markRead(id);
+}
+
+async function markRead(id) {
+  await supabase.from('messages').update({ read: true }).eq('id', id);
+  loadMessages(); loadStats();
+}
+
+document.getElementById('msgDeleteBtn').addEventListener('click', async () => {
+  if (!currentMsgId || !confirm('Delete this message?')) return;
+  await supabase.from('messages').delete().eq('id', currentMsgId);
+  closeModal(); loadMessages(); loadStats();
+});
+
+function closeModal() {
+  document.getElementById('msgModal').style.display = 'none';
+  currentMsgId = null;
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+  e.preventDefault();
+  await supabase.auth.signOut();
+  window.location.href = 'login.html';
+});
+
+(async function() {
+  if (!await checkAuth()) return;
+  await Settings.getAll();
+  await loadStats();
+  await loadMessages();
+  
+  const themeBtn = document.createElement('button');
+  themeBtn.className = 'btn btn-outline btn-sm';
+  themeBtn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+})();
+</script>
+</body>
+</html>

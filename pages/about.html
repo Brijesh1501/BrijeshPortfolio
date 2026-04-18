@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About & Skills — Brijesh Kumar Pal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="../index.html" class="nav-logo">
+    <span class="accent mono">&lt;</span>BKP<span class="accent mono">/&gt;</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html" class="nav-link">Home</a></li>
+    <li><a href="about.html" class="nav-link">About</a></li>
+    <li><a href="projects.html" class="nav-link">Projects</a></li>
+    <li><a href="contact.html" class="nav-link">Contact</a></li>
+    <li><a href="resume.html" class="nav-link">Resume</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <button class="hamburger" id="hamburger">☰</button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="about.html" class="nav-link">About & Skills</a>
+  <a href="projects.html" class="nav-link">Projects</a>
+  <a href="contact.html" class="nav-link">Contact</a>
+  <a href="resume.html" class="nav-link">Resume</a>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- PAGE HEADER -->
+  <div style="background: var(--bg-secondary); padding: 4rem 2rem 3rem; border-bottom: 1px solid var(--border-subtle);">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <div class="section-label">Get To Know Me</div>
+      <h1 class="section-title">About <span>&</span> Skills</h1>
+    </div>
+  </div>
+
+  <!-- ABOUT SECTION -->
+  <section class="section">
+    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 4rem; align-items: start;">
+      
+      <div class="reveal">
+        <div class="section-label">Who I Am</div>
+        <h2 style="font-family:'Syne',sans-serif; font-size:2rem; font-weight:700; margin-bottom:1.5rem">
+          Passionate about <span style="color:var(--accent)">Data</span> & <span style="color:var(--accent-2)">Technology</span>
+        </h2>
+        <div id="aboutText" style="color:var(--text-secondary); line-height:1.8; font-size:0.95rem; margin-bottom:2rem">
+          <div class="loading-overlay"><div class="spinner"></div></div>
+        </div>
+        
+        <!-- Career Objective -->
+        <div class="card" style="margin-bottom:1.5rem">
+          <div style="font-family:'Space Mono',monospace; font-size:0.65rem; color:var(--accent); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:0.75rem">Career Objective</div>
+          <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; font-style:italic">
+            "I wish to work in a challenging workplace that welcomes innovative ideas and offers personal and professional growth. I aim to utilize my skills to the best of my knowledge to contribute effectively to organizational success."
+          </p>
+        </div>
+        
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap">
+          <a href="resume.html" class="btn btn-primary">Download Resume ↓</a>
+          <a href="contact.html" class="btn btn-outline">Let's Connect</a>
+        </div>
+      </div>
+      
+      <!-- Quick Info Panel -->
+      <div class="reveal" style="animation-delay:0.2s">
+        <div class="card" style="margin-bottom:1.5rem">
+          <div style="font-family:'Space Mono',monospace; font-size:0.65rem; color:var(--accent); letter-spacing:0.15em; margin-bottom:1rem">Quick Info</div>
+          <div id="quickInfo">
+            <div class="loading-overlay"><div class="spinner"></div></div>
+          </div>
+        </div>
+        
+        <!-- Stats -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
+          <div class="card" style="text-align:center">
+            <div style="font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:var(--accent)">3+</div>
+            <div style="font-size:0.75rem; color:var(--text-muted)">Years Experience</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:var(--accent-2)">10+</div>
+            <div style="font-size:0.75rem; color:var(--text-muted)">Client Campaigns</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:var(--accent)">95%</div>
+            <div style="font-size:0.75rem; color:var(--text-muted)">Data Accuracy</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:var(--accent-2)">3K+</div>
+            <div style="font-size:0.75rem; color:var(--text-muted)">Records/Month</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCE SECTION -->
+  <section style="background: var(--bg-secondary); padding: 5rem 2rem;">
+    <div style="max-width:1200px; margin:0 auto;">
+      <div class="section-header reveal">
+        <div class="section-label">Work History</div>
+        <h2 class="section-title">Professional <span>Experience</span></h2>
+      </div>
+      <div class="timeline reveal" id="experienceList">
+        <div class="loading-overlay"><div class="spinner"></div> Loading experience...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SKILLS SECTION -->
+  <section class="section">
+    <div class="section-header reveal">
+      <div class="section-label">My Toolkit</div>
+      <h2 class="section-title">Skills & <span>Technologies</span></h2>
+    </div>
+    <div class="skills-categories reveal" id="skillsList">
+      <div class="loading-overlay"><div class="spinner"></div> Loading skills...</div>
+    </div>
+  </section>
+
+  <!-- EDUCATION SECTION -->
+  <section style="background: var(--bg-secondary); padding: 5rem 2rem;">
+    <div style="max-width:1200px; margin:0 auto;">
+      <div class="section-header reveal">
+        <div class="section-label">Academic Background</div>
+        <h2 class="section-title">Education</h2>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.25rem;" id="educationList">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CERTIFICATIONS SECTION -->
+  <section class="section">
+    <div class="section-header reveal">
+      <div class="section-label">Credentials</div>
+      <h2 class="section-title">Certifications</h2>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem;" id="certList">
+      <div class="loading-overlay"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <div class="footer-links">
+    <a href="../index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="projects.html">Projects</a>
+    <a href="contact.html">Contact</a>
+    <a href="resume.html">Resume</a>
+  </div>
+  <div>© 2025 Brijesh Kumar Pal</div>
+</footer>
+
+<script src="../js/config.js"></script>
+<script>
+(async function() {
+  const settings = await Settings.getAll();
+  
+  // About text
+  const aboutEl = document.getElementById('aboutText');
+  if (settings.about_text) {
+    aboutEl.innerHTML = `<p>${settings.about_text}</p>`;
+  } else {
+    aboutEl.innerHTML = `<p>Data Research Analyst with expertise in data extraction, analysis, and visualization. Experienced in platforms like LinkedIn, Apollo.io, ZoomInfo, and Salesforce to deliver actionable insights that drive business growth.</p>`;
+  }
+  
+  // Quick info
+  document.getElementById('quickInfo').innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:0.75rem">
+      ${settings.email ? `<div style="display:flex; gap:0.75rem; align-items:center"><span style="color:var(--accent)">✉</span><span style="font-size:0.875rem; color:var(--text-secondary)">${settings.email}</span></div>` : ''}
+      ${settings.phone ? `<div style="display:flex; gap:0.75rem; align-items:center"><span style="color:var(--accent)">📱</span><span style="font-size:0.875rem; color:var(--text-secondary)">${settings.phone}</span></div>` : ''}
+      <div style="display:flex; gap:0.75rem; align-items:center"><span style="color:var(--accent)">📍</span><span style="font-size:0.875rem; color:var(--text-secondary)">${settings.location || 'Ghaziabad, India'}</span></div>
+      ${settings.linkedin ? `<div style="display:flex; gap:0.75rem; align-items:center"><span style="color:var(--accent)">💼</span><a href="${settings.linkedin}" target="_blank" style="font-size:0.875rem; color:var(--accent); text-decoration:none">LinkedIn Profile ↗</a></div>` : ''}
+      <div style="display:flex; gap:0.75rem; align-items:center"><span style="color:var(--accent)">🎓</span><span style="font-size:0.875rem; color:var(--text-secondary)">MCA — IME Sahibabad (2023)</span></div>
+      <div style="display:flex; gap:0.75rem; align-items:center"><span style="color:var(--accent-2)">🟢</span><span style="font-size:0.875rem; color:var(--accent-2)">Available for opportunities</span></div>
+    </div>
+  `;
+
+  // Load experience
+  const { data: exp } = await supabase.from('experience').select('*').order('sort_order');
+  const expList = document.getElementById('experienceList');
+  if (exp && exp.length > 0) {
+    expList.innerHTML = exp.map(e => `
+      <div class="timeline-item reveal">
+        <div class="timeline-dot ${e.is_current ? 'current' : ''}"></div>
+        <div class="timeline-date">${formatDate(e.start_date)} – ${e.is_current ? 'Present' : formatDate(e.end_date)}</div>
+        <div class="timeline-company">${e.company} ${e.location ? '· ' + e.location : ''}</div>
+        <div class="timeline-role">${e.role}</div>
+        <ul class="timeline-desc">
+          ${(e.description || []).map(d => `<li>${d}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('');
+  }
+  
+  // Load skills grouped by category
+  const { data: skills } = await supabase.from('skills').select('*').order('sort_order');
+  const skillsEl = document.getElementById('skillsList');
+  if (skills && skills.length > 0) {
+    const categories = [...new Set(skills.map(s => s.category))];
+    skillsEl.innerHTML = categories.map(cat => `
+      <div class="reveal">
+        <div class="skill-category-title">${cat}</div>
+        <div class="skills-grid">
+          ${skills.filter(s => s.category === cat).map(s => `
+            <div class="skill-chip">
+              <span class="skill-chip-icon">${s.icon || '⚡'}</span>
+              <span class="skill-chip-name">${s.name}</span>
+              <div class="skill-chip-bar">
+                <div class="skill-chip-fill" data-level="${s.level}" style="width:0%"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+    
+    // Animate bars
+    setTimeout(() => {
+      document.querySelectorAll('.skill-chip-fill').forEach(bar => {
+        bar.style.width = bar.dataset.level + '%';
+      });
+    }, 300);
+  }
+  
+  // Load education
+  const { data: edu } = await supabase.from('education').select('*').order('sort_order');
+  const eduEl = document.getElementById('educationList');
+  if (edu && edu.length > 0) {
+    eduEl.innerHTML = edu.map(e => `
+      <div class="card reveal">
+        <div style="font-size:1.75rem; margin-bottom:0.75rem">🎓</div>
+        <div style="font-family:'Space Mono',monospace; font-size:0.65rem; color:var(--accent); letter-spacing:0.1em; margin-bottom:0.25rem">${e.start_year ? e.start_year + ' – ' : ''}${e.end_year}</div>
+        <h3 style="font-family:'Syne',sans-serif; font-size:0.95rem; font-weight:700; margin-bottom:0.4rem">${e.degree}</h3>
+        <div style="color:var(--text-secondary); font-size:0.8rem; margin-bottom:0.5rem">${e.institution}</div>
+        <div class="tag tag-accent">${e.score_type}: ${e.score}</div>
+      </div>
+    `).join('');
+  }
+  
+  // Load certifications
+  const { data: certs } = await supabase.from('certifications').select('*').order('sort_order');
+  const certEl = document.getElementById('certList');
+  if (certs && certs.length > 0) {
+    certEl.innerHTML = certs.map(c => `
+      <div class="card reveal" style="display:flex; align-items:center; gap:1rem">
+        <div style="font-size:1.5rem">🏆</div>
+        <div>
+          <div style="font-weight:600; font-size:0.875rem; margin-bottom:0.2rem">${c.name}</div>
+          <div style="color:var(--text-secondary); font-size:0.75rem">${c.issuer}${c.year ? ' · ' + c.year : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  setActiveNav();
+  
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('mobileMenu').classList.toggle('open');
+  });
+  
+  const themeBtn = document.getElementById('themeToggle');
+  themeBtn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '🌙' : '☀️';
+  themeBtn.addEventListener('click', async () => {
+    const curr = document.documentElement.getAttribute('data-theme');
+    const next = curr === 'dark' ? 'light' : 'dark';
+    ThemeManager.apply(next);
+    themeBtn.textContent = next === 'dark' ? '🌙' : '☀️';
+    await Settings.update('theme', next);
+  });
+  
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+})();
+</script>
+</body>
+</html>

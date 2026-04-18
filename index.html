@@ -1,648 +1,248 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Brijesh Kumar Pal – Data Analyst Portfolio</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-
-<!-- Supabase SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script>
-// ─────────────────────────────────────────────────────────
-// ── SUPABASE CONFIG  ── replace with your own values ──
-// ─────────────────────────────────────────────────────────
-const SUPABASE_URL  = "https://butcwlqgwwqoudubaehw.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1dGN3bHFnd3dxb3VkdWJhZWh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0OTk1MzAsImV4cCI6MjA5MjA3NTUzMH0.5cl6hPJpSjdiOfKu5FKsXlV3hNBQM5L2uwXW6M7CFxU";
-
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-// ── Fallback data shown when tables are empty / not yet set up ──
-const DEFAULT = {
-  hero: {
-    name:"Brijesh Kumar Pal", title:"Data Research Analyst",
-    tagline:"Turning raw data into strategic decisions.",
-    email:"brijeshkumarpal@email.com", linkedin:"https://linkedin.com/in/brijesh",
-    phone:"+91 XXXXXXXXXX", location:"Ghaziabad, India"
-  },
-  about: {
-    objective:"I wish to work in a challenging workplace that welcomes innovative ideas and offers me personal and professional growth. I aim to utilize my skills to the best of my knowledge to contribute effectively to organizational success.",
-    stats:[
-      {label:"Years Experience",value:"2+"},{label:"Records/Month",value:"3000+"},
-      {label:"Data Accuracy",value:"95%"},{label:"Efficiency Gain",value:"40%"}
-    ]
-  },
-  experience:[
-    {id:"e1",role:"Associate Data Research Analyst",company:"Cloudkeeper",location:"Noida",period:"07/2025 – Present",
-     bullets:["Extracted data from websites and sources such as Lusha, Apollo.io for cloud cost optimization for AWS, AZURE, and GCP accounts.","Organized and interpreted data in Microsoft Excel, automating reports that reduced manual work by 40%.","Uploading reports to Salesforce and creating dashboards using Excel."]},
-    {id:"e2",role:"Data Analyst",company:"Head-Field Solutions",location:"Noida",period:"02/2025 – 06/2025",
-     bullets:["Extracted and compiled data from LinkedIn, ZoomInfo, Apollo.io, Indeed, and Glassdoor, increasing data acquisition efficiency by 25%.","Analyzed trends across recruitment and staffing data, leading to insights that improved hiring recommendations by 30%.","Organized and interpreted data in Microsoft Excel, automating reports that reduced manual work by 40%."]},
-    {id:"e3",role:"Data Research Analyst",company:"SDAD Technology – TradeFlock",location:"Noida",period:"06/2024 – 02/2025",
-     bullets:["Collected data from LinkedIn, Apollo.io, and Sales Navigator, supporting 10+ client campaigns with accurate targeting information.","Structured and cleaned data in Excel, improving data accuracy by 40% and enabling faster decision-making.","Performed data mining and web scraping, retrieving 3000+ relevant records monthly with 95% accuracy."]}
-  ],
-  skills:{
-    tools:["Microsoft Excel","Microsoft Word","PowerPoint","Microsoft Office","Salesforce"],
-    dev:["HTML","CSS","JavaScript","Python","MySQL","SQL","MongoDB","React.js","Node.js","Express.js","Postman","JIRA"],
-    data:["LinkedIn Sales Navigator","ZoomInfo","Apollo.io","Data Mining","Web Scraping","Data Extraction","Data Analysis","Company Profiling","Secondary Research"],
-    soft:["Time Management","Teamwork","Problem Solving","Critical Thinking","Analytical Thinking"]
-  },
-  education:[
-    {degree:"M.C.A",institute:"Institute of Management Education, Sahibabad",year:"2021–2023",score:"CGPA: 8.32"},
-    {degree:"B.C.A",institute:"Institute of Technology and Science, Mohan Nagar",year:"2018–2021",score:"71.86%"},
-    {degree:"12th (PCM)",institute:"Air Force School, Hindon",year:"2018",score:"67.4%"},
-    {degree:"10th",institute:"Air Force School, Hindon",year:"2016",score:"CGPA: 9.6"}
-  ],
-  certifications:[
-    {name:"Digital Marketing",issuer:"Google"},
-    {name:"Cybersecurity",issuer:"International Cybersecurity Institute, UK"},
-    {name:"Knock Down the Lockdown",issuer:"TCS iON"},
-    {name:"COVID-19 Awareness",issuer:"World Health Organization (WHO)"}
-  ],
-  projects:[
-    {id:"p1",title:"Static LinkedIn Clone",desc:"A front-end clone of LinkedIn built with HTML, CSS, and JavaScript replicating the core UI and layout.",tags:["HTML","CSS","JavaScript"]},
-    {id:"p2",title:"Static Netflix Clone",desc:"A responsive Netflix landing page clone showcasing UI design skills and frontend development proficiency.",tags:["HTML","CSS","JavaScript"]}
-  ]
-};
-
-// ─────────────────────────────────────────────
-// ── SUPABASE HELPERS
-// Settings (hero, about, skills, education, certs) →
-//   table: portfolio_settings  (key TEXT PK, value JSONB)
-// Collections (experience, projects, messages) →
-//   separate tables with id (uuid/serial), created_at
-// ─────────────────────────────────────────────
-
-function withTimeout(promise, ms, fallback) {
-  return Promise.race([
-    promise,
-    new Promise(resolve => setTimeout(() => resolve(fallback), ms))
-  ]);
-}
-async function loadSection(key) {
-  try {
-    const result = await withTimeout(
-      sb.from("portfolio_settings").select("value").eq("key",key).single(),
-      4000, {data:null, error:"timeout"}
-    );
-    const {data,error} = result;
-    if (error||!data) return DEFAULT[key];
-    return data.value;
-  } catch { return DEFAULT[key]; }
-}
-async function saveSection(key,value) {
-  const {error} = await sb.from("portfolio_settings").upsert({key,value},{onConflict:"key"});
-  if (error) throw error;
-}
-async function loadCollection(table) {
-  try {
-    const result = await withTimeout(
-      sb.from(table).select("*").order("created_at",{ascending:true}),
-      4000, {data:null, error:"timeout"}
-    );
-    const {data,error} = result;
-    if (error||!data||data.length===0) return DEFAULT[table]||[];
-    return data;
-  } catch { return DEFAULT[table]||[]; }
-}
-async function addToCollection(table,row) {
-  const {data,error} = await sb.from(table).insert(row).select().single();
-  if (error) throw error;
-  return data;
-}
-async function deleteFromCollection(table,id) {
-  const {error} = await sb.from(table).delete().eq("id",id);
-  if (error) throw error;
-}
-
-// ─────────────────────────────────────────────
-// ── STATE
-// ─────────────────────────────────────────────
-let currentPage="home", isAdmin=false, portfolioData={};
-window.isAdmin=false;
-
-sb.auth.onAuthStateChange((_,session)=>{
-  isAdmin=!!session; window.isAdmin=isAdmin;
-  const nb=document.getElementById("admin-nav-btn");
-  if(nb) nb.textContent=isAdmin?"Admin Panel":"Admin";
-  const fab=document.getElementById("admin-logout-btn");
-  if(fab) fab.style.display=isAdmin?"block":"none";
-  if(currentPage==="admin") navigate("admin");
-});
-
-async function loadAll(){
-  showLoading(true);
-
-  // Safety net: always hide loader after 6 seconds no matter what
-  const safetyTimer = setTimeout(()=>{
-    showLoading(false);
-    if(!portfolioData.hero) portfolioData = { ...DEFAULT };
-    navigate(currentPage);
-  }, 6000);
-
-  try {
-    portfolioData={
-      hero:          await loadSection("hero"),
-      about:         await loadSection("about"),
-      experience:    await loadCollection("experience"),
-      skills:        await loadSection("skills"),
-      education:     await loadSection("education"),
-      certifications:await loadSection("certifications"),
-      projects:      await loadCollection("projects")
-    };
-  } catch(e) {
-    console.warn("Supabase load failed, using defaults:", e);
-    portfolioData = { ...DEFAULT };
-  } finally {
-    clearTimeout(safetyTimer);
-    showLoading(false);
-    navigate(currentPage);
-  }
-}
-function showLoading(on){
-  document.getElementById("loading-screen").style.display=on?"flex":"none";
-}
-
-// ─────────────────────────────────────────────
-// ── ROUTER
-// ─────────────────────────────────────────────
-function navigate(page){
-  currentPage=page;
-  document.querySelectorAll(".nav-link").forEach(l=>l.classList.toggle("active-nav",l.dataset.page===page));
-  const main=document.getElementById("main-content");
-  main.style.opacity=0;
-  setTimeout(()=>{
-    main.innerHTML="";
-    if(page==="home")        main.innerHTML=renderHome();
-    else if(page==="about")      main.innerHTML=renderAbout();
-    else if(page==="experience") main.innerHTML=renderExperience();
-    else if(page==="skills")     main.innerHTML=renderSkills();
-    else if(page==="education")  main.innerHTML=renderEducation();
-    else if(page==="projects")   main.innerHTML=renderProjects();
-    else if(page==="contact"){   main.innerHTML=renderContact(); bindContact(); }
-    else if(page==="admin"){     main.innerHTML=renderAdmin();   bindAdmin();   }
-    else if(page==="admin-login"){main.innerHTML=renderAdminLogin(); bindAdminLogin();}
-    main.style.opacity=1;
-    window.scrollTo(0,0);
-  },200);
-}
-window.navigate=navigate;
-
-// ─────────────────────────────────────────────
-// ── PAGE RENDERERS
-// ─────────────────────────────────────────────
-function renderHome(){
-  const h=portfolioData.hero||DEFAULT.hero;
-  const a=portfolioData.about||DEFAULT.about;
-  return `
-  <section class="min-h-screen flex flex-col justify-center relative overflow-hidden px-6 md:px-16 py-24">
-    <div class="noise-overlay"></div><div class="grid-bg"></div>
-    <div class="relative z-10 max-w-5xl mx-auto w-full">
-      <p class="font-mono text-xs tracking-widest text-amber-400 mb-6 uppercase animate-fade-in-up" style="animation-delay:.1s">[ Data Research Analyst ]</p>
-      <h1 class="font-display text-6xl md:text-8xl font-extrabold leading-none tracking-tight text-white mb-6 animate-fade-in-up" style="animation-delay:.2s">
-        ${h.name.split(" ").slice(0,2).join("<br/>")}
-        <span class="text-amber-400 italic font-serif"> ${h.name.split(" ").slice(2).join(" ")}</span>
-      </h1>
-      <p class="font-mono text-slate-300 text-lg md:text-xl max-w-xl mb-10 animate-fade-in-up" style="animation-delay:.35s">${h.tagline}</p>
-      <div class="flex flex-wrap gap-4 animate-fade-in-up" style="animation-delay:.5s">
-        <button onclick="navigate('experience')" class="px-8 py-3 bg-amber-400 text-slate-900 font-bold font-display tracking-wide hover:bg-amber-300 transition-all hover:scale-105">View Work</button>
-        <button onclick="navigate('contact')"    class="px-8 py-3 border border-slate-500 text-slate-200 font-display tracking-wide hover:border-amber-400 hover:text-amber-400 transition-all">Get In Touch</button>
-      </div>
-      <div class="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 animate-fade-in-up" style="animation-delay:.65s">
-        ${a.stats.map(s=>`<div class="border border-slate-700 p-4 hover:border-amber-400 transition-colors"><div class="font-display text-3xl font-bold text-amber-400">${s.value}</div><div class="font-mono text-xs text-slate-400 mt-1 tracking-wide">${s.label}</div></div>`).join("")}
-      </div>
-    </div>
-    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
-      <span class="font-mono text-xs text-slate-500">scroll</span><div class="w-px h-8 bg-amber-400"></div>
-    </div>
-  </section>
-  <section class="px-6 md:px-16 py-20 border-t border-slate-800">
-    <div class="max-w-5xl mx-auto grid md:grid-cols-3 gap-8">
-      <div class="md:col-span-1">
-        <p class="font-mono text-xs text-amber-400 tracking-widest mb-4 uppercase">What I Do</p>
-        <h2 class="font-display text-4xl font-bold text-white leading-tight">Data that<br/><em class="font-serif">drives</em><br/>decisions.</h2>
-      </div>
-      <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-        ${[{icon:"◈",title:"Data Extraction",desc:"Sourcing precise records from LinkedIn, Apollo.io, ZoomInfo, and more with 95%+ accuracy."},
-           {icon:"◉",title:"Research Analysis",desc:"Identifying patterns and trends across millions of data points to fuel strategic action."},
-           {icon:"◆",title:"Excel Automation",desc:"Automating repetitive workflows, reducing manual effort by up to 40%."},
-           {icon:"◇",title:"Dashboard Reporting",desc:"Building clear, actionable dashboards in Excel and Salesforce for stakeholders."}
-          ].map(c=>`<div class="p-6 border border-slate-700 hover:border-amber-400 transition-all duration-300 group"><div class="text-amber-400 text-2xl mb-3">${c.icon}</div><h3 class="font-display font-bold text-white text-lg mb-2 group-hover:text-amber-400 transition-colors">${c.title}</h3><p class="font-mono text-slate-400 text-sm leading-relaxed">${c.desc}</p></div>`).join("")}
-      </div>
-    </div>
-  </section>`;
-}
-
-function renderAbout(){
-  const h=portfolioData.hero||DEFAULT.hero;
-  const a=portfolioData.about||DEFAULT.about;
-  return `
-  <section class="min-h-screen px-6 md:px-16 py-24">
-    <div class="max-w-5xl mx-auto">
-      <p class="font-mono text-xs text-amber-400 tracking-widest mb-4 uppercase animate-fade-in-up">About Me</p>
-      <h2 class="font-display text-5xl md:text-7xl font-extrabold text-white mb-16 leading-tight animate-fade-in-up" style="animation-delay:.1s">
-        The person<br/>behind the <em class="font-serif text-amber-400">data.</em>
-      </h2>
-      <div class="grid md:grid-cols-2 gap-16 mb-20">
-        <div class="animate-fade-in-up" style="animation-delay:.2s">
-          <div class="w-64 h-64 bg-slate-800 border-2 border-amber-400 flex items-center justify-center text-amber-400 text-8xl font-display font-bold mx-auto md:mx-0">BKP</div>
-          <div class="mt-6 space-y-3">
-            ${[{label:"Location",value:h.location},{label:"Email",value:h.email},{label:"Languages",value:"English, Hindi"}].map(i=>`<div class="flex gap-4 font-mono text-sm"><span class="text-amber-400 w-24 shrink-0">${i.label}</span><span class="text-slate-300">${i.value}</span></div>`).join("")}
-          </div>
-        </div>
-        <div class="animate-fade-in-up" style="animation-delay:.3s">
-          <h3 class="font-display text-2xl font-bold text-white mb-4">Career Objective</h3>
-          <p class="font-mono text-slate-300 leading-relaxed mb-8 text-sm">${a.objective}</p>
-          <div class="grid grid-cols-2 gap-4">
-            ${a.stats.map(s=>`<div class="border border-slate-700 p-4 hover:border-amber-400 transition-colors"><div class="font-display text-3xl font-bold text-amber-400">${s.value}</div><div class="font-mono text-xs text-slate-400 mt-1">${s.label}</div></div>`).join("")}
-          </div>
-        </div>
-      </div>
-      <div class="border-t border-slate-800 pt-16">
-        <h3 class="font-display text-2xl font-bold text-white mb-8">Interests</h3>
-        <div class="flex flex-wrap gap-3">
-          ${["Microsoft Office & Excel Automation","Databases & Data Management","Data Reporting & Dashboarding","Data Analysis","Research Analysis"].map(i=>`<span class="font-mono text-sm px-4 py-2 border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-slate-900 transition-all cursor-default">${i}</span>`).join("")}
-        </div>
-      </div>
-    </div>
-  </section>`;
-}
-
-function parseBullets(b){ return Array.isArray(b)?b:JSON.parse(b||"[]"); }
-function parseTags(t)   { return Array.isArray(t)?t:JSON.parse(t||"[]"); }
-
-function renderExperience(){
-  const exp=portfolioData.experience||DEFAULT.experience;
-  return `
-  <section class="min-h-screen px-6 md:px-16 py-24">
-    <div class="max-w-5xl mx-auto">
-      <p class="font-mono text-xs text-amber-400 tracking-widest mb-4 uppercase">Work History</p>
-      <h2 class="font-display text-5xl md:text-7xl font-extrabold text-white mb-16 leading-tight">Where I've<br/><em class="font-serif text-amber-400">made impact.</em></h2>
-      <div class="relative">
-        <div class="absolute left-0 top-0 bottom-0 w-px bg-slate-700 ml-3"></div>
-        <div class="space-y-12 pl-10">
-          ${exp.map((e,i)=>`
-          <div class="relative animate-fade-in-up" style="animation-delay:${0.1*i}s">
-            <div class="absolute -left-10 top-1 w-6 h-6 border-2 border-amber-400 bg-slate-900 flex items-center justify-center"><div class="w-2 h-2 bg-amber-400"></div></div>
-            <div class="border border-slate-700 hover:border-amber-400 transition-all duration-300 p-8 group">
-              <div class="flex flex-wrap justify-between items-start gap-4 mb-4">
-                <div>
-                  <h3 class="font-display text-xl font-bold text-white group-hover:text-amber-400 transition-colors">${e.role}</h3>
-                  <p class="font-display text-amber-400 font-semibold">${e.company} <span class="text-slate-400 font-mono text-sm font-normal">— ${e.location}</span></p>
-                </div>
-                <span class="font-mono text-xs text-slate-400 border border-slate-700 px-3 py-1 shrink-0">${e.period}</span>
-              </div>
-              <ul class="space-y-2">
-                ${parseBullets(e.bullets).map(b=>`<li class="font-mono text-sm text-slate-300 flex gap-3 leading-relaxed"><span class="text-amber-400 shrink-0 mt-0.5">→</span><span>${b}</span></li>`).join("")}
-              </ul>
-            </div>
-          </div>`).join("")}
-        </div>
-      </div>
-    </div>
-  </section>`;
-}
-
-function renderSkills(){
-  const s=portfolioData.skills||DEFAULT.skills;
-  const cats=[{label:"Tools & Platforms",key:"tools",c:"amber"},{label:"Development",key:"dev",c:"emerald"},{label:"Data & Research",key:"data",c:"sky"},{label:"Soft Skills",key:"soft",c:"rose"}];
-  const cm={amber:"border-amber-400 text-amber-400 hover:bg-amber-400",emerald:"border-emerald-400 text-emerald-400 hover:bg-emerald-400",sky:"border-sky-400 text-sky-400 hover:bg-sky-400",rose:"border-rose-400 text-rose-400 hover:bg-rose-400"};
-  return `
-  <section class="min-h-screen px-6 md:px-16 py-24">
-    <div class="max-w-5xl mx-auto">
-      <p class="font-mono text-xs text-amber-400 tracking-widest mb-4 uppercase">Skills</p>
-      <h2 class="font-display text-5xl md:text-7xl font-extrabold text-white mb-16 leading-tight">My<br/><em class="font-serif text-amber-400">toolkit.</em></h2>
-      <div class="space-y-12">
-        ${cats.map((c,i)=>`<div class="animate-fade-in-up" style="animation-delay:${0.1*i}s"><div class="flex items-center gap-4 mb-4"><div class="w-2 h-2 bg-${c.c}-400"></div><h3 class="font-display font-bold text-white text-lg">${c.label}</h3><div class="flex-1 h-px bg-slate-800"></div></div><div class="flex flex-wrap gap-2">${(s[c.key]||[]).map(sk=>`<span class="font-mono text-sm px-3 py-1.5 border ${cm[c.c]} hover:text-slate-900 transition-all duration-200 cursor-default">${sk}</span>`).join("")}</div></div>`).join("")}
-      </div>
-      <div class="mt-20 border border-slate-700 p-8 animate-fade-in-up" style="animation-delay:.5s">
-        <h3 class="font-display font-bold text-white text-xl mb-6">Key Achievements at a Glance</h3>
-        <div class="grid md:grid-cols-3 gap-6">
-          ${[{v:"20%",l:"Improved lead generation strategies"},{v:"40%",l:"Reduced manual work via Excel automation"},{v:"25%",l:"Increased data acquisition efficiency"}].map(m=>`<div class="text-center border border-slate-700 p-4"><div class="font-display text-4xl font-extrabold text-amber-400 mb-1">${m.v}</div><div class="font-mono text-xs text-slate-400">${m.l}</div></div>`).join("")}
-        </div>
-      </div>
-    </div>
-  </section>`;
-}
-
-function renderEducation(){
-  const edu=portfolioData.education||DEFAULT.education;
-  const certs=portfolioData.certifications||DEFAULT.certifications;
-  return `
-  <section class="min-h-screen px-6 md:px-16 py-24">
-    <div class="max-w-5xl mx-auto">
-      <p class="font-mono text-xs text-amber-400 tracking-widest mb-4 uppercase">Education</p>
-      <h2 class="font-display text-5xl md:text-7xl font-extrabold text-white mb-16 leading-tight">Built on a<br/><em class="font-serif text-amber-400">strong foundation.</em></h2>
-      <div class="grid md:grid-cols-2 gap-6 mb-20">
-        ${edu.map((e,i)=>`<div class="border border-slate-700 hover:border-amber-400 transition-all p-6 animate-fade-in-up group" style="animation-delay:${0.1*i}s"><div class="font-display text-amber-400 font-bold text-lg mb-1 group-hover:text-white transition-colors">${e.degree}</div><div class="font-mono text-slate-300 text-sm mb-3">${e.institute}</div><div class="flex justify-between font-mono text-xs text-slate-500"><span>${e.year}</span><span class="text-amber-400">${e.score}</span></div></div>`).join("")}
-      </div>
-      <div class="border-t border-slate-800 pt-16">
-        <h3 class="font-display text-3xl font-bold text-white mb-8">Certifications</h3>
-        <div class="grid md:grid-cols-2 gap-4">
-          ${certs.map((c,i)=>`<div class="flex items-center gap-4 border border-slate-700 hover:border-amber-400 p-4 transition-all animate-fade-in-up" style="animation-delay:${0.1*i}s"><div class="text-amber-400 text-xl shrink-0">✦</div><div><div class="font-display font-bold text-white text-sm">${c.name}</div><div class="font-mono text-xs text-slate-400">${c.issuer}</div></div></div>`).join("")}
-        </div>
-      </div>
-      <div class="mt-16 border-t border-slate-800 pt-16 animate-fade-in-up">
-        <h3 class="font-display text-3xl font-bold text-white mb-6">Courses</h3>
-        <div class="border border-amber-400 p-6">
-          <div class="font-display font-bold text-amber-400 text-lg">MERN Stack Developer Course</div>
-          <div class="font-mono text-slate-300 text-sm mt-1">Skill Academy by Testbook, Noida</div>
-          <div class="font-mono text-xs text-slate-500 mt-1">2023 – 2024</div>
-        </div>
-      </div>
-    </div>
-  </section>`;
-}
-
-function renderProjects(){
-  const proj=portfolioData.projects||DEFAULT.projects;
-  return `
-  <section class="min-h-screen px-6 md:px-16 py-24">
-    <div class="max-w-5xl mx-auto">
-      <p class="font-mono text-xs text-amber-400 tracking-widest mb-4 uppercase">Projects</p>
-      <h2 class="font-display text-5xl md:text-7xl font-extrabold text-white mb-16 leading-tight">Things I've<br/><em class="font-serif text-amber-400">built.</em></h2>
-      <div class="grid md:grid-cols-2 gap-8">
-        ${proj.map((p,i)=>`<div class="border border-slate-700 hover:border-amber-400 transition-all p-8 group animate-fade-in-up relative overflow-hidden" style="animation-delay:${0.15*i}s"><div class="absolute top-0 right-0 w-24 h-24 border-b border-l border-slate-700 group-hover:border-amber-400 transition-colors flex items-center justify-center text-slate-700 group-hover:text-amber-400 text-3xl">◈</div><div class="font-mono text-xs text-slate-500 mb-3">0${i+1}</div><h3 class="font-display text-2xl font-bold text-white mb-3 group-hover:text-amber-400 transition-colors">${p.title}</h3><p class="font-mono text-slate-400 text-sm leading-relaxed mb-6">${p.desc}</p><div class="flex flex-wrap gap-2">${parseTags(p.tags).map(t=>`<span class="font-mono text-xs px-2 py-1 border border-slate-600 text-slate-400">${t}</span>`).join("")}</div></div>`).join("")}
-      </div>
-    </div>
-  </section>`;
-}
-
-function renderContact(){
-  const h=portfolioData.hero||DEFAULT.hero;
-  return `
-  <section class="min-h-screen px-6 md:px-16 py-24">
-    <div class="max-w-5xl mx-auto">
-      <p class="font-mono text-xs text-amber-400 tracking-widest mb-4 uppercase">Contact</p>
-      <h2 class="font-display text-5xl md:text-7xl font-extrabold text-white mb-16 leading-tight">Let's<br/><em class="font-serif text-amber-400">connect.</em></h2>
-      <div class="grid md:grid-cols-2 gap-16">
-        <div class="space-y-6">
-          ${[{label:"Email",value:h.email,icon:"@"},{label:"LinkedIn",value:h.linkedin,icon:"in"},{label:"Phone",value:h.phone,icon:"☏"},{label:"Location",value:h.location,icon:"◎"}].map(i=>`<div class="flex gap-4 items-start"><div class="font-mono text-amber-400 w-8 shrink-0 text-sm">${i.icon}</div><div><div class="font-mono text-xs text-slate-500 mb-0.5">${i.label}</div><div class="font-display text-white font-semibold">${i.value}</div></div></div>`).join("")}
-        </div>
-        <form id="contact-form" class="space-y-4">
-          <div><label class="font-mono text-xs text-slate-400 block mb-1">Your Name</label><input id="cf-name" type="text" required class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-4 py-3 font-mono text-sm text-white transition-colors" placeholder="John Doe"/></div>
-          <div><label class="font-mono text-xs text-slate-400 block mb-1">Email</label><input id="cf-email" type="email" required class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-4 py-3 font-mono text-sm text-white transition-colors" placeholder="john@example.com"/></div>
-          <div><label class="font-mono text-xs text-slate-400 block mb-1">Message</label><textarea id="cf-msg" rows="5" required class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-4 py-3 font-mono text-sm text-white transition-colors resize-none" placeholder="Tell me about your project..."></textarea></div>
-          <button type="submit" id="cf-btn" class="w-full bg-amber-400 text-slate-900 font-display font-bold py-3 hover:bg-amber-300 transition-colors tracking-wide">Send Message</button>
-          <div id="cf-status" class="font-mono text-xs text-center hidden"></div>
-        </form>
-      </div>
-    </div>
-  </section>`;
-}
-
-function bindContact(){
-  document.getElementById("contact-form")?.addEventListener("submit",async e=>{
-    e.preventDefault();
-    const btn=document.getElementById("cf-btn"), status=document.getElementById("cf-status");
-    btn.textContent="Sending..."; btn.disabled=true;
-    const {error}=await sb.from("messages").insert({
-      name:document.getElementById("cf-name").value,
-      email:document.getElementById("cf-email").value,
-      message:document.getElementById("cf-msg").value
-    });
-    if(error){
-      status.textContent="✗ Failed to send. Please try again.";
-      status.className="font-mono text-xs text-center text-rose-400";
-    } else {
-      status.textContent="✓ Message sent successfully!";
-      status.className="font-mono text-xs text-center text-emerald-400";
-      document.getElementById("contact-form").reset();
-    }
-    status.classList.remove("hidden");
-    btn.textContent="Send Message"; btn.disabled=false;
-  });
-}
-
-function renderAdminLogin(){
-  return `
-  <section class="min-h-screen flex items-center justify-center px-6">
-    <div class="w-full max-w-sm">
-      <div class="border border-amber-400 p-8">
-        <h2 class="font-display text-3xl font-bold text-white mb-2">Admin Login</h2>
-        <p class="font-mono text-xs text-slate-400 mb-8">Restricted area — authorized access only</p>
-        <div class="space-y-4">
-          <div><label class="font-mono text-xs text-slate-400 block mb-1">Email</label><input id="al-email" type="email" class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-4 py-3 font-mono text-sm text-white transition-colors"/></div>
-          <div><label class="font-mono text-xs text-slate-400 block mb-1">Password</label><input id="al-pass" type="password" class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-4 py-3 font-mono text-sm text-white transition-colors"/></div>
-          <button id="al-btn" class="w-full bg-amber-400 text-slate-900 font-display font-bold py-3 hover:bg-amber-300 transition-colors">Login</button>
-          <div id="al-err" class="font-mono text-xs text-rose-400 text-center hidden"></div>
-        </div>
-      </div>
-    </div>
-  </section>`;
-}
-
-function bindAdminLogin(){
-  document.getElementById("al-btn")?.addEventListener("click",async()=>{
-    const email=document.getElementById("al-email").value;
-    const pass=document.getElementById("al-pass").value;
-    const errEl=document.getElementById("al-err");
-    const btn=document.getElementById("al-btn");
-    btn.textContent="Logging in..."; btn.disabled=true;
-    const {error}=await sb.auth.signInWithPassword({email,password:pass});
-    if(error){
-      errEl.textContent="Invalid credentials. Try again.";
-      errEl.classList.remove("hidden");
-      btn.textContent="Login"; btn.disabled=false;
-    } else { isAdmin=true; navigate("admin"); }
-  });
-}
-
-function renderAdmin(){
-  if(!isAdmin) return renderAdminLogin();
-  return `
-  <section class="min-h-screen px-6 md:px-16 py-24">
-    <div class="max-w-5xl mx-auto">
-      <div class="flex justify-between items-center mb-12">
-        <div><p class="font-mono text-xs text-amber-400 tracking-widest mb-2 uppercase">Admin Panel</p><h2 class="font-display text-4xl font-bold text-white">Portfolio Manager</h2></div>
-        <button id="admin-signout" class="font-mono text-sm border border-rose-500 text-rose-400 px-4 py-2 hover:bg-rose-500 hover:text-white transition-all">Sign Out</button>
-      </div>
-      <div class="grid md:grid-cols-3 gap-4 mb-12">
-        ${[{id:"tab-hero",label:"Hero / Contact",icon:"◈"},{id:"tab-exp",label:"Experience",icon:"◉"},{id:"tab-proj",label:"Projects",icon:"◆"},{id:"tab-skills",label:"Skills",icon:"◇"},{id:"tab-msgs",label:"Messages",icon:"✉"},{id:"tab-about",label:"Stats",icon:"▲"}].map(t=>`<button id="${t.id}" onclick="showAdminTab('${t.id}')" class="admin-tab border border-slate-700 px-4 py-3 font-mono text-sm text-slate-400 hover:border-amber-400 hover:text-amber-400 transition-all text-left flex items-center gap-2"><span class="text-amber-400">${t.icon}</span>${t.label}</button>`).join("")}
-      </div>
-      <div id="admin-panel" class="min-h-64 border border-slate-700 p-8">
-        <p class="font-mono text-slate-500 text-sm">Select a section above to manage content.</p>
-      </div>
-    </div>
-  </section>`;
-}
-
-function bindAdmin(){
-  document.getElementById("admin-signout")?.addEventListener("click",async()=>{
-    await sb.auth.signOut(); isAdmin=false; navigate("home");
-  });
-}
-
-window.showAdminTab=function(tabId){
-  document.querySelectorAll(".admin-tab").forEach(t=>t.classList.remove("border-amber-400","text-amber-400"));
-  document.getElementById(tabId)?.classList.add("border-amber-400","text-amber-400");
-  const panel=document.getElementById("admin-panel");
-
-  if(tabId==="tab-hero"){
-    const h=portfolioData.hero||DEFAULT.hero;
-    panel.innerHTML=`<h3 class="font-display font-bold text-white text-xl mb-6">Hero & Contact Info</h3><div class="grid md:grid-cols-2 gap-4">${["name","title","tagline","email","linkedin","phone","location"].map(f=>`<div><label class="font-mono text-xs text-slate-400 block mb-1 capitalize">${f}</label><input id="h-${f}" value="${h[f]||''}" class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-3 py-2 font-mono text-sm text-white transition-colors"/></div>`).join("")}</div><button onclick="saveHero()" class="mt-6 bg-amber-400 text-slate-900 font-display font-bold px-6 py-2 hover:bg-amber-300 transition-colors">Save Changes</button><span id="hero-saved" class="ml-4 font-mono text-xs text-emerald-400 hidden">✓ Saved!</span>`;
-  }
-  else if(tabId==="tab-exp"){
-    const exp=portfolioData.experience||DEFAULT.experience;
-    panel.innerHTML=`<h3 class="font-display font-bold text-white text-xl mb-6">Experience Entries</h3><div class="space-y-4 mb-6">${exp.map(e=>`<div class="border border-slate-700 p-4"><div class="flex justify-between items-start"><div><div class="font-display font-bold text-white">${e.role}</div><div class="font-mono text-sm text-amber-400">${e.company} — ${e.period}</div></div><button onclick="deleteExp('${e.id}')" class="font-mono text-xs border border-rose-700 text-rose-400 px-2 py-1 hover:bg-rose-700 transition-all">Delete</button></div></div>`).join("")}</div><div class="border border-slate-700 p-6"><h4 class="font-display font-bold text-white mb-4">Add New Entry</h4><div class="grid md:grid-cols-2 gap-3 mb-3">${["role","company","location","period"].map(f=>`<input id="ne-${f}" placeholder="${f}" class="bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-3 py-2 font-mono text-sm text-white"/>`).join("")}</div><textarea id="ne-bullets" rows="3" placeholder="Bullet points (one per line)" class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-3 py-2 font-mono text-sm text-white mb-3 resize-none"></textarea><button onclick="addExp()" class="bg-amber-400 text-slate-900 font-display font-bold px-6 py-2 hover:bg-amber-300 transition-colors">Add Entry</button></div>`;
-  }
-  else if(tabId==="tab-proj"){
-    const proj=portfolioData.projects||DEFAULT.projects;
-    panel.innerHTML=`<h3 class="font-display font-bold text-white text-xl mb-6">Projects</h3><div class="space-y-4 mb-6">${proj.map(p=>`<div class="border border-slate-700 p-4 flex justify-between items-start"><div><div class="font-display font-bold text-white">${p.title}</div><div class="font-mono text-xs text-slate-400 mt-1">${p.desc.slice(0,80)}...</div></div><button onclick="deleteProj('${p.id}')" class="font-mono text-xs border border-rose-700 text-rose-400 px-2 py-1 hover:bg-rose-700 transition-all ml-4 shrink-0">Delete</button></div>`).join("")}</div><div class="border border-slate-700 p-6"><h4 class="font-display font-bold text-white mb-4">Add New Project</h4><input id="np-title" placeholder="Project Title" class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-3 py-2 font-mono text-sm text-white mb-3"/><textarea id="np-desc" rows="3" placeholder="Description" class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-3 py-2 font-mono text-sm text-white mb-3 resize-none"></textarea><input id="np-tags" placeholder="Tags (comma separated)" class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-3 py-2 font-mono text-sm text-white mb-3"/><button onclick="addProj()" class="bg-amber-400 text-slate-900 font-display font-bold px-6 py-2 hover:bg-amber-300 transition-colors">Add Project</button></div>`;
-  }
-  else if(tabId==="tab-msgs"){ loadMessages(panel); }
-  else if(tabId==="tab-about"){
-    const a=portfolioData.about||DEFAULT.about;
-    panel.innerHTML=`<h3 class="font-display font-bold text-white text-xl mb-6">Stats</h3><div class="space-y-4 mb-6">${a.stats.map((s,i)=>`<div class="flex gap-4 items-center"><input id="stat-val-${i}" value="${s.value}" class="w-24 bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-3 py-2 font-mono text-sm text-white"/><input id="stat-lbl-${i}" value="${s.label}" class="flex-1 bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-3 py-2 font-mono text-sm text-white"/></div>`).join("")}</div><button onclick="saveStats(${a.stats.length})" class="bg-amber-400 text-slate-900 font-display font-bold px-6 py-2 hover:bg-amber-300 transition-colors">Save Stats</button><span id="stats-saved" class="ml-4 font-mono text-xs text-emerald-400 hidden">✓ Saved!</span>`;
-  }
-  else if(tabId==="tab-skills"){
-    const sk=portfolioData.skills||DEFAULT.skills;
-    panel.innerHTML=`<h3 class="font-display font-bold text-white text-xl mb-6">Skills (comma-separated)</h3><div class="space-y-4">${[["tools","Tools & Platforms"],["dev","Development"],["data","Data & Research"],["soft","Soft Skills"]].map(([key,label])=>`<div><label class="font-mono text-xs text-slate-400 block mb-1">${label}</label><textarea id="sk-${key}" rows="3" class="w-full bg-transparent border border-slate-700 focus:border-amber-400 outline-none px-3 py-2 font-mono text-sm text-white resize-none">${(sk[key]||[]).join(", ")}</textarea></div>`).join("")}</div><button onclick="saveSkills()" class="mt-6 bg-amber-400 text-slate-900 font-display font-bold px-6 py-2 hover:bg-amber-300 transition-colors">Save Skills</button><span id="skills-saved" class="ml-4 font-mono text-xs text-emerald-400 hidden">✓ Saved!</span>`;
-  }
-};
-
-async function loadMessages(panel){
-  panel.innerHTML=`<p class="font-mono text-slate-400 text-sm">Loading messages...</p>`;
-  const {data,error}=await sb.from("messages").select("*").order("created_at",{ascending:false});
-  if(error){ panel.innerHTML=`<p class="font-mono text-rose-400 text-sm">Failed to load. Check Supabase config &amp; RLS policies.</p>`; return; }
-  panel.innerHTML=`<h3 class="font-display font-bold text-white text-xl mb-6">Contact Messages (${data.length})</h3>${data.length===0?'<p class="font-mono text-slate-500 text-sm">No messages yet.</p>':data.map(m=>`<div class="border border-slate-700 p-4 mb-4"><div class="flex justify-between mb-2"><span class="font-display font-bold text-white">${m.name}</span><button onclick="deleteMsg('${m.id}')" class="font-mono text-xs border border-rose-700 text-rose-400 px-2 py-1 hover:bg-rose-700 transition-all">Delete</button></div><div class="font-mono text-xs text-amber-400 mb-2">${m.email}</div><div class="font-mono text-sm text-slate-300">${m.message}</div></div>`).join("")}`;
-}
-
-window.saveHero=async()=>{
-  const data={};
-  ["name","title","tagline","email","linkedin","phone","location"].forEach(f=>data[f]=document.getElementById(`h-${f}`).value);
-  await saveSection("hero",data); portfolioData.hero=data;
-  document.getElementById("hero-saved").classList.remove("hidden");
-  setTimeout(()=>document.getElementById("hero-saved")?.classList.add("hidden"),2000);
-};
-window.addExp=async()=>{
-  const row={role:document.getElementById("ne-role").value,company:document.getElementById("ne-company").value,location:document.getElementById("ne-location").value,period:document.getElementById("ne-period").value,bullets:document.getElementById("ne-bullets").value.split("\n").filter(Boolean)};
-  const inserted=await addToCollection("experience",row);
-  portfolioData.experience=[...(portfolioData.experience||[]),inserted];
-  showAdminTab("tab-exp");
-};
-window.deleteExp=async(id)=>{
-  if(!confirm("Delete this entry?")) return;
-  await deleteFromCollection("experience",id);
-  portfolioData.experience=portfolioData.experience.filter(e=>String(e.id)!==String(id));
-  showAdminTab("tab-exp");
-};
-window.addProj=async()=>{
-  const row={title:document.getElementById("np-title").value,desc:document.getElementById("np-desc").value,tags:document.getElementById("np-tags").value.split(",").map(t=>t.trim())};
-  const inserted=await addToCollection("projects",row);
-  portfolioData.projects=[...(portfolioData.projects||[]),inserted];
-  showAdminTab("tab-proj");
-};
-window.deleteProj=async(id)=>{
-  if(!confirm("Delete this project?")) return;
-  await deleteFromCollection("projects",id);
-  portfolioData.projects=portfolioData.projects.filter(p=>String(p.id)!==String(id));
-  showAdminTab("tab-proj");
-};
-window.deleteMsg=async(id)=>{
-  if(!confirm("Delete this message?")) return;
-  await deleteFromCollection("messages",id);
-  showAdminTab("tab-msgs");
-};
-window.saveStats=async(n)=>{
-  const stats=[];
-  for(let i=0;i<n;i++) stats.push({value:document.getElementById(`stat-val-${i}`).value,label:document.getElementById(`stat-lbl-${i}`).value});
-  const about={...(portfolioData.about||DEFAULT.about),stats};
-  await saveSection("about",about); portfolioData.about=about;
-  document.getElementById("stats-saved").classList.remove("hidden");
-  setTimeout(()=>document.getElementById("stats-saved")?.classList.add("hidden"),2000);
-};
-window.saveSkills=async()=>{
-  const data={};
-  ["tools","dev","data","soft"].forEach(k=>data[k]=document.getElementById(`sk-${k}`).value.split(",").map(s=>s.trim()).filter(Boolean));
-  await saveSection("skills",data); portfolioData.skills=data;
-  document.getElementById("skills-saved").classList.remove("hidden");
-  setTimeout(()=>document.getElementById("skills-saved")?.classList.add("hidden"),2000);
-};
-
-loadAll();
-</script>
-
-<style>
-  *{box-sizing:border-box;}
-  body{background:#0a0a0f;color:#e2e8f0;}
-  .font-display{font-family:'Syne',sans-serif;}
-  .font-mono{font-family:'DM Mono',monospace;}
-  .font-serif{font-family:'Instrument Serif',serif;}
-  #main-content{transition:opacity .2s ease;}
-  .noise-overlay{position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:1;}
-  .grid-bg{position:absolute;inset:0;z-index:0;background-image:linear-gradient(rgba(251,191,36,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(251,191,36,0.04) 1px,transparent 1px);background-size:60px 60px;}
-  @keyframes fadeInUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
-  .animate-fade-in-up{animation:fadeInUp .6s ease both;}
-  .active-nav{color:#fbbf24!important;border-bottom:1px solid #fbbf24;}
-  ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:#0a0a0f;}::-webkit-scrollbar-thumb{background:#fbbf24;}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brijesh Kumar Pal — Data Analyst</title>
+  <meta name="description" content="Portfolio of Brijesh Kumar Pal — Data Research Analyst & Web Developer based in Ghaziabad, India." />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="font-mono">
+<body>
 
-<div id="loading-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950">
-  <div class="text-center">
-    <div class="font-display text-4xl font-extrabold text-white mb-2">BKP</div>
-    <div class="font-mono text-xs text-amber-400 tracking-widest animate-pulse">Loading portfolio...</div>
-  </div>
-</div>
-
-<nav class="fixed top-0 left-0 right-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-6 md:px-16">
-  <div class="max-w-5xl mx-auto flex items-center justify-between h-14">
-    <button onclick="navigate('home')" class="font-display font-extrabold text-amber-400 text-lg tracking-tight hover:text-white transition-colors">BKP<span class="text-white">.</span></button>
-    <div class="hidden md:flex items-center gap-6">
-      <button data-page="home"       onclick="navigate('home')"       class="nav-link font-mono text-xs text-slate-400 hover:text-amber-400 transition-colors uppercase tracking-widest pb-0.5">home</button>
-      <button data-page="about"      onclick="navigate('about')"      class="nav-link font-mono text-xs text-slate-400 hover:text-amber-400 transition-colors uppercase tracking-widest pb-0.5">about</button>
-      <button data-page="experience" onclick="navigate('experience')" class="nav-link font-mono text-xs text-slate-400 hover:text-amber-400 transition-colors uppercase tracking-widest pb-0.5">experience</button>
-      <button data-page="skills"     onclick="navigate('skills')"     class="nav-link font-mono text-xs text-slate-400 hover:text-amber-400 transition-colors uppercase tracking-widest pb-0.5">skills</button>
-      <button data-page="education"  onclick="navigate('education')"  class="nav-link font-mono text-xs text-slate-400 hover:text-amber-400 transition-colors uppercase tracking-widest pb-0.5">education</button>
-      <button data-page="projects"   onclick="navigate('projects')"   class="nav-link font-mono text-xs text-slate-400 hover:text-amber-400 transition-colors uppercase tracking-widest pb-0.5">projects</button>
-      <button data-page="contact"    onclick="navigate('contact')"    class="nav-link font-mono text-xs text-slate-400 hover:text-amber-400 transition-colors uppercase tracking-widest pb-0.5">contact</button>
-      <button id="admin-nav-btn" onclick="navigate(isAdmin?'admin':'admin-login')" class="font-mono text-xs text-slate-600 hover:text-slate-400 transition-colors uppercase tracking-widest pb-0.5">Admin</button>
-    </div>
-    <button id="mob-menu-btn" class="md:hidden text-slate-400 hover:text-amber-400 transition-colors">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-    </button>
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a href="index.html" class="nav-logo">
+    <span class="accent mono">&lt;</span>BKP<span class="accent mono">/&gt;</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html" class="nav-link">Home</a></li>
+    <li><a href="pages/about.html" class="nav-link">About</a></li>
+    <li><a href="pages/projects.html" class="nav-link">Projects</a></li>
+    <li><a href="pages/contact.html" class="nav-link">Contact</a></li>
+    <li><a href="pages/resume.html" class="nav-link">Resume</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+    <button class="hamburger" id="hamburger">☰</button>
   </div>
 </nav>
 
-<div id="mob-nav" class="hidden fixed inset-0 z-30 bg-slate-950 flex-col items-center justify-center gap-6 pt-14">
-  <button data-page="home"       onclick="navigate('home');document.getElementById('mob-nav').style.display='none';"       class="nav-link font-display font-bold text-2xl text-slate-400 hover:text-amber-400 transition-colors uppercase">home</button>
-  <button data-page="about"      onclick="navigate('about');document.getElementById('mob-nav').style.display='none';"      class="nav-link font-display font-bold text-2xl text-slate-400 hover:text-amber-400 transition-colors uppercase">about</button>
-  <button data-page="experience" onclick="navigate('experience');document.getElementById('mob-nav').style.display='none';" class="nav-link font-display font-bold text-2xl text-slate-400 hover:text-amber-400 transition-colors uppercase">experience</button>
-  <button data-page="skills"     onclick="navigate('skills');document.getElementById('mob-nav').style.display='none';"     class="nav-link font-display font-bold text-2xl text-slate-400 hover:text-amber-400 transition-colors uppercase">skills</button>
-  <button data-page="education"  onclick="navigate('education');document.getElementById('mob-nav').style.display='none';"  class="nav-link font-display font-bold text-2xl text-slate-400 hover:text-amber-400 transition-colors uppercase">education</button>
-  <button data-page="projects"   onclick="navigate('projects');document.getElementById('mob-nav').style.display='none';"   class="nav-link font-display font-bold text-2xl text-slate-400 hover:text-amber-400 transition-colors uppercase">projects</button>
-  <button data-page="contact"    onclick="navigate('contact');document.getElementById('mob-nav').style.display='none';"    class="nav-link font-display font-bold text-2xl text-slate-400 hover:text-amber-400 transition-colors uppercase">contact</button>
-  <button onclick="navigate('admin-login');document.getElementById('mob-nav').style.display='none';" class="font-display font-bold text-2xl text-slate-600 uppercase">Admin</button>
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" class="nav-link">Home</a>
+  <a href="pages/about.html" class="nav-link">About & Skills</a>
+  <a href="pages/projects.html" class="nav-link">Projects</a>
+  <a href="pages/contact.html" class="nav-link">Contact</a>
+  <a href="pages/resume.html" class="nav-link">Resume</a>
 </div>
 
-<div id="admin-logout-btn" style="display:none" class="fixed bottom-4 right-4 z-40">
-  <button onclick="navigate('admin')" class="font-mono text-xs border border-amber-400 text-amber-400 px-4 py-2 bg-slate-950 hover:bg-amber-400 hover:text-slate-900 transition-all">Admin Panel</button>
-</div>
-
-<main id="main-content" class="pt-14 min-h-screen"></main>
-
-<footer class="border-t border-slate-800 px-6 md:px-16 py-8">
-  <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-4">
-    <div class="font-display font-extrabold text-amber-400">BKP<span class="text-white">.</span></div>
-    <p class="font-mono text-xs text-slate-500">© 2025 Brijesh Kumar Pal. All rights reserved.</p>
-    <div class="flex gap-4">
-      <button onclick="navigate('home')"       class="font-mono text-xs text-slate-500 hover:text-amber-400 transition-colors uppercase">home</button>
-      <button onclick="navigate('about')"      class="font-mono text-xs text-slate-500 hover:text-amber-400 transition-colors uppercase">about</button>
-      <button onclick="navigate('experience')" class="font-mono text-xs text-slate-500 hover:text-amber-400 transition-colors uppercase">experience</button>
-      <button onclick="navigate('contact')"    class="font-mono text-xs text-slate-500 hover:text-amber-400 transition-colors uppercase">contact</button>
+<!-- HERO SECTION -->
+<section class="hero" id="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-bg-orb hero-orb-1"></div>
+  <div class="hero-bg-orb hero-orb-2"></div>
+  
+  <div class="hero-content">
+    <div class="hero-chip" id="heroChip">📍 Available for opportunities</div>
+    
+    <h1 class="hero-name">
+      <span id="heroTitle">Brijesh Kumar<br><span class="highlight">Pal</span></span>
+    </h1>
+    
+    <div class="hero-role">
+      <span id="heroSubtitle">Data Research Analyst</span>
+      <span class="sep">✦</span>
+      <span>Web Developer</span>
+      <span class="sep">✦</span>
+      <span id="heroLocation">Ghaziabad, India</span>
+    </div>
+    
+    <p class="hero-tagline" id="heroTagline">
+      Turning raw data into actionable insights. Specialized in data extraction, analysis, and building impactful dashboards that drive business decisions.
+    </p>
+    
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="hero-stat-num">3+</div>
+        <div class="hero-stat-label">Years Experience</div>
+      </div>
+      <div class="stat-card">
+        <div class="hero-stat-num">3000+</div>
+        <div class="hero-stat-label">Records/Month</div>
+      </div>
+      <div class="stat-card">
+        <div class="hero-stat-num">95%</div>
+        <div class="hero-stat-label">Data Accuracy</div>
+      </div>
+      <div class="stat-card">
+        <div class="hero-stat-num">40%</div>
+        <div class="hero-stat-label">Efficiency Boost</div>
+      </div>
+    </div>
+    
+    <div class="hero-actions">
+      <a href="pages/projects.html" class="btn btn-primary">View My Work ↗</a>
+      <a href="pages/contact.html" class="btn btn-outline">Get In Touch</a>
+      <a href="pages/resume.html" class="btn btn-outline">Resume ↓</a>
     </div>
   </div>
+</section>
+
+<!-- QUICK EXPERTISE SECTION -->
+<section class="section reveal" id="expertise">
+  <div class="section-header">
+    <div class="section-label">What I Do</div>
+    <h2 class="section-title">Core <span>Expertise</span></h2>
+  </div>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;">
+    
+    <div class="card reveal" style="animation-delay: 0.1s">
+      <div style="font-size: 2rem; margin-bottom: 1rem;">🔍</div>
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Data Research & Extraction</h3>
+      <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.6;">
+        Expert in extracting high-quality data from platforms like LinkedIn, Apollo.io, ZoomInfo, and Lusha with 95%+ accuracy.
+      </p>
+    </div>
+    
+    <div class="card reveal" style="animation-delay: 0.2s">
+      <div style="font-size: 2rem; margin-bottom: 1rem;">📊</div>
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Excel Automation & Dashboards</h3>
+      <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.6;">
+        Build automated Excel reports and Salesforce dashboards that reduce manual work by up to 40% and accelerate decision-making.
+      </p>
+    </div>
+    
+    <div class="card reveal" style="animation-delay: 0.3s">
+      <div style="font-size: 2rem; margin-bottom: 1rem;">🕷️</div>
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Web Scraping & Mining</h3>
+      <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.6;">
+        Proficient in data mining and web scraping using Python, retrieving thousands of relevant records monthly for client campaigns.
+      </p>
+    </div>
+    
+    <div class="card reveal" style="animation-delay: 0.4s">
+      <div style="font-size: 2rem; margin-bottom: 1rem;">☁️</div>
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Cloud Data Support</h3>
+      <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.6;">
+        Supporting cloud cost optimization for AWS, Azure, and GCP accounts through precise data extraction and structured reporting.
+      </p>
+    </div>
+    
+    <div class="card reveal" style="animation-delay: 0.5s">
+      <div style="font-size: 2rem; margin-bottom: 1rem;">🌐</div>
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Web Development</h3>
+      <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.6;">
+        Building responsive web applications using the MERN stack (MongoDB, Express, React, Node.js) with clean, modern interfaces.
+      </p>
+    </div>
+    
+    <div class="card reveal" style="animation-delay: 0.6s">
+      <div style="font-size: 2rem; margin-bottom: 1rem;">🎯</div>
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Lead Generation Strategy</h3>
+      <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.6;">
+        Analyzing datasets to uncover patterns and drive actionable insights that improved lead generation strategies by 20%.
+      </p>
+    </div>
+    
+  </div>
+</section>
+
+<!-- RECENT EXPERIENCE SNIPPET -->
+<section class="section reveal" style="background: var(--bg-secondary); max-width: 100%; padding: 5rem 2rem;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <div class="section-header">
+      <div class="section-label">Career Journey</div>
+      <h2 class="section-title">Recent <span>Experience</span></h2>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem;" id="homeExpList">
+      <div class="loading-overlay"><div class="spinner"></div> Loading experience...</div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 2rem;">
+      <a href="pages/about.html" class="btn btn-outline">See Full Journey →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-links">
+    <a href="index.html">Home</a>
+    <a href="pages/about.html">About</a>
+    <a href="pages/projects.html">Projects</a>
+    <a href="pages/contact.html">Contact</a>
+    <a href="pages/resume.html">Resume</a>
+  </div>
+  <div id="footerText">© 2025 Brijesh Kumar Pal · Ghaziabad, India</div>
 </footer>
 
+<script src="js/config.js"></script>
 <script>
-  document.getElementById("mob-menu-btn").addEventListener("click",()=>{
-    const nav=document.getElementById("mob-nav");
-    nav.style.display=nav.style.display==="flex"?"none":"flex";
+(async function() {
+  // Load settings
+  const settings = await Settings.getAll();
+  
+  // Update hero content if set
+  if (settings.hero_tagline) {
+    document.getElementById('heroTagline').textContent = settings.hero_tagline;
+  }
+  if (settings.location) {
+    document.getElementById('heroLocation').textContent = settings.location;
+    document.getElementById('footerText').textContent = 
+      `© ${new Date().getFullYear()} Brijesh Kumar Pal · ${settings.location}`;
+  }
+  
+  // Load experience preview
+  const { data: exp } = await supabase
+    .from('experience')
+    .select('*')
+    .order('sort_order')
+    .limit(3);
+  
+  const container = document.getElementById('homeExpList');
+  if (exp && exp.length > 0) {
+    container.innerHTML = exp.map(e => `
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
+          <span class="tag tag-accent">${e.is_current ? '🟢 Current' : '✓ Previous'}</span>
+          <span class="mono" style="font-size:0.7rem; color:var(--text-muted)">${formatDate(e.start_date)} – ${e.is_current ? 'Present' : formatDate(e.end_date)}</span>
+        </div>
+        <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:0.25rem">${e.company}</div>
+        <h3 style="font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; margin-bottom:0.75rem">${e.role}</h3>
+        <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6">${(e.description || [])[0] || ''}</p>
+      </div>
+    `).join('');
+  }
+
+  setActiveNav();
+  
+  // Nav toggle
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('mobileMenu').classList.toggle('open');
   });
+  
+  // Theme toggle
+  const themeBtn = document.getElementById('themeToggle');
+  themeBtn.addEventListener('click', async () => {
+    const curr = document.documentElement.getAttribute('data-theme');
+    const next = curr === 'dark' ? 'light' : 'dark';
+    ThemeManager.apply(next);
+    themeBtn.textContent = next === 'dark' ? '🌙' : '☀️';
+    await Settings.update('theme', next);
+  });
+  
+  const theme = document.documentElement.getAttribute('data-theme');
+  themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+  
+  // Scroll reveal
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+})();
 </script>
 </body>
 </html>

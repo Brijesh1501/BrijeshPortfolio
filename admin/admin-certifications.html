@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Certifications — Admin</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-logo"><a href="../index.html">🏠 View Portfolio</a></div>
+    <nav>
+      <a href="dashboard.html" class="admin-nav-item">📊 Dashboard</a>
+      <a href="admin-skills.html" class="admin-nav-item">⚡ Skills</a>
+      <a href="admin-experience.html" class="admin-nav-item">💼 Experience</a>
+      <a href="admin-projects.html" class="admin-nav-item">🚀 Projects</a>
+      <a href="admin-education.html" class="admin-nav-item">🎓 Education</a>
+      <a href="admin-certifications.html" class="admin-nav-item active">🏆 Certifications</a>
+      <a href="admin-settings.html" class="admin-nav-item">⚙️ Settings</a>
+      <a href="#" class="admin-nav-item" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+  <main class="admin-content">
+    <div class="admin-header">
+      <div class="admin-title">🏆 Certifications</div>
+      <button class="btn btn-primary" onclick="openModal()">+ Add Certification</button>
+    </div>
+    <div class="card" id="certTable"><div class="loading-overlay"><div class="spinner"></div></div></div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add Certification</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">Certification Name *</label><input type="text" class="form-input" id="fName" placeholder="Digital Marketing" /></div>
+    <div class="form-group"><label class="form-label">Issuer / Organization *</label><input type="text" class="form-input" id="fIssuer" placeholder="Google" /></div>
+    <div class="form-group"><label class="form-label">Year</label><input type="text" class="form-input" id="fYear" placeholder="2023" /></div>
+    <div class="form-group"><label class="form-label">Certificate URL (optional)</label><input type="url" class="form-input" id="fUrl" placeholder="https://..." /></div>
+    <div class="form-group"><label class="form-label">Sort Order</label><input type="number" class="form-input" id="fOrder" value="0" /></div>
+    <div style="display:flex; gap:0.75rem; justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCert()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script>
+let editingId = null;
+async function checkAuth(){const{data}=await supabase.auth.getSession();if(!data.session){window.location.href='login.html';return false;}return true;}
+async function loadCerts(){
+  const{data}=await supabase.from('certifications').select('*').order('sort_order');
+  const el=document.getElementById('certTable');
+  if(!data||!data.length){el.innerHTML='<div style="text-align:center;color:var(--text-muted);padding:2rem">No certifications yet.</div>';return;}
+  el.innerHTML=`<table class="admin-table"><thead><tr><th>Certification</th><th>Issuer</th><th>Year</th><th>URL</th><th>Actions</th></tr></thead><tbody>${data.map(c=>`
+    <tr>
+      <td><strong>${c.name}</strong></td><td>${c.issuer}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.75rem">${c.year||'—'}</td>
+      <td>${c.url?`<a href="${c.url}" target="_blank" style="color:var(--accent);font-size:0.8rem">View ↗</a>`:'—'}</td>
+      <td><div style="display:flex;gap:0.4rem">
+        <button class="btn btn-outline btn-sm" onclick='editCert(${JSON.stringify(c).replace(/'/g,"&apos;")})'>Edit</button>
+        <button class="btn btn-sm" style="background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);color:var(--accent-3)" onclick="deleteCert('${c.id}')">Del</button>
+      </div></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+function openModal(){editingId=null;['fName','fIssuer','fYear','fUrl'].forEach(f=>document.getElementById(f).value='');document.getElementById('fOrder').value='0';document.getElementById('modal').style.display='flex';}
+function editCert(c){editingId=c.id;document.getElementById('fName').value=c.name;document.getElementById('fIssuer').value=c.issuer;document.getElementById('fYear').value=c.year||'';document.getElementById('fUrl').value=c.url||'';document.getElementById('fOrder').value=c.sort_order;document.getElementById('modalTitle').textContent='Edit Certification';document.getElementById('modal').style.display='flex';}
+function closeModal(){document.getElementById('modal').style.display='none';editingId=null;}
+async function saveCert(){
+  const name=document.getElementById('fName').value.trim(),issuer=document.getElementById('fIssuer').value.trim();
+  if(!name||!issuer){showToast('Name and Issuer required.','error');return;}
+  const payload={name,issuer,year:document.getElementById('fYear').value.trim()||null,url:document.getElementById('fUrl').value.trim()||null,sort_order:parseInt(document.getElementById('fOrder').value)||0};
+  const{error}=editingId?await supabase.from('certifications').update(payload).eq('id',editingId):await supabase.from('certifications').insert(payload);
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast('Saved!','success');closeModal();loadCerts();
+}
+async function deleteCert(id){if(!confirm('Delete?'))return;await supabase.from('certifications').delete().eq('id',id);showToast('Deleted.','info');loadCerts();}
+document.getElementById('logoutBtn').addEventListener('click',async(e)=>{e.preventDefault();await supabase.auth.signOut();window.location.href='login.html';});
+(async function(){if(!await checkAuth())return;await Settings.getAll();loadCerts();})();
+</script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Experience — Admin</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-logo"><a href="../index.html">🏠 View Portfolio</a></div>
+    <nav>
+      <a href="dashboard.html" class="admin-nav-item">📊 Dashboard</a>
+      <a href="admin-skills.html" class="admin-nav-item">⚡ Skills</a>
+      <a href="admin-experience.html" class="admin-nav-item active">💼 Experience</a>
+      <a href="admin-projects.html" class="admin-nav-item">🚀 Projects</a>
+      <a href="admin-education.html" class="admin-nav-item">🎓 Education</a>
+      <a href="admin-certifications.html" class="admin-nav-item">🏆 Certifications</a>
+      <a href="admin-settings.html" class="admin-nav-item">⚙️ Settings</a>
+      <a href="#" class="admin-nav-item" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+  <main class="admin-content">
+    <div class="admin-header">
+      <div class="admin-title">💼 Work Experience</div>
+      <button class="btn btn-primary" onclick="openModal()">+ Add Experience</button>
+    </div>
+    <div class="card" id="expTable">
+      <div class="loading-overlay"><div class="spinner"></div></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add Experience</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Company *</label>
+      <input type="text" class="form-input" id="fCompany" placeholder="Company Name" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Role / Title *</label>
+      <input type="text" class="form-input" id="fRole" placeholder="Data Analyst" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location</label>
+      <input type="text" class="form-input" id="fLocation" placeholder="Noida, India" />
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+      <div class="form-group">
+        <label class="form-label">Start Date (MM/YYYY)</label>
+        <input type="text" class="form-input" id="fStart" placeholder="06/2024" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">End Date (MM/YYYY)</label>
+        <input type="text" class="form-input" id="fEnd" placeholder="Leave blank if current" />
+      </div>
+    </div>
+    <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem">
+      <input type="checkbox" id="fCurrent" style="width:16px; height:16px; accent-color:var(--accent)" />
+      <label for="fCurrent" style="font-size:0.875rem; color:var(--text-secondary); cursor:pointer">Current Job</label>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description (one bullet per line)</label>
+      <textarea class="form-textarea" id="fDesc" placeholder="• Extracted data from LinkedIn and Apollo.io&#10;• Automated Excel reports reducing manual work by 40%"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sort Order</label>
+      <input type="number" class="form-input" id="fOrder" value="0" />
+    </div>
+    <div style="display:flex; gap:0.75rem; justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExp()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script>
+let editingId = null;
+
+async function checkAuth() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) { window.location.href = 'login.html'; return false; }
+  return true;
+}
+
+async function loadExp() {
+  const { data } = await supabase.from('experience').select('*').order('sort_order');
+  const el = document.getElementById('expTable');
+  if (!data || !data.length) { el.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:2rem">No experience yet.</div>'; return; }
+  el.innerHTML = `
+    <table class="admin-table">
+      <thead><tr><th>Company</th><th>Role</th><th>Period</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${data.map(e => `
+          <tr>
+            <td><strong>${e.company}</strong><br><span style="font-size:0.75rem; color:var(--text-muted)">${e.location||''}</span></td>
+            <td>${e.role}</td>
+            <td style="font-family:'Space Mono',monospace; font-size:0.75rem">${formatDate(e.start_date)} – ${e.is_current ? 'Present' : formatDate(e.end_date)}</td>
+            <td><span class="tag ${e.is_current ? 'tag-accent' : ''}">${e.is_current ? '🟢 Current' : 'Past'}</span></td>
+            <td>
+              <div style="display:flex; gap:0.4rem">
+                <button class="btn btn-outline btn-sm" onclick='editExp(${JSON.stringify(e).replace(/'/g,"&apos;")})'>Edit</button>
+                <button class="btn btn-sm" style="background:rgba(255,107,107,0.1); border:1px solid rgba(255,107,107,0.3); color:var(--accent-3)" onclick="deleteExp('${e.id}')">Del</button>
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function openModal() {
+  editingId = null;
+  ['fCompany','fRole','fLocation','fStart','fEnd','fDesc'].forEach(f => document.getElementById(f).value='');
+  document.getElementById('fCurrent').checked = false;
+  document.getElementById('fOrder').value = '0';
+  document.getElementById('modalTitle').textContent = 'Add Experience';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function editExp(e) {
+  editingId = e.id;
+  document.getElementById('fCompany').value = e.company;
+  document.getElementById('fRole').value = e.role;
+  document.getElementById('fLocation').value = e.location || '';
+  document.getElementById('fStart').value = e.start_date || '';
+  document.getElementById('fEnd').value = e.end_date || '';
+  document.getElementById('fCurrent').checked = e.is_current;
+  document.getElementById('fDesc').value = (e.description||[]).join('\n');
+  document.getElementById('fOrder').value = e.sort_order;
+  document.getElementById('modalTitle').textContent = 'Edit Experience';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null; }
+
+async function saveExp() {
+  const company = document.getElementById('fCompany').value.trim();
+  const role = document.getElementById('fRole').value.trim();
+  if (!company || !role) { showToast('Company and Role are required.', 'error'); return; }
+  
+  const descRaw = document.getElementById('fDesc').value;
+  const description = descRaw.split('\n').map(l => l.replace(/^[•\-\*]\s*/,'')).filter(Boolean);
+  
+  const payload = {
+    company, role,
+    location: document.getElementById('fLocation').value.trim(),
+    start_date: document.getElementById('fStart').value.trim(),
+    end_date: document.getElementById('fEnd').value.trim() || null,
+    is_current: document.getElementById('fCurrent').checked,
+    description,
+    sort_order: parseInt(document.getElementById('fOrder').value) || 0,
+  };
+  
+  const { error } = editingId
+    ? await supabase.from('experience').update(payload).eq('id', editingId)
+    : await supabase.from('experience').insert(payload);
+  
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('Saved!', 'success'); closeModal(); loadExp();
+}
+
+async function deleteExp(id) {
+  if (!confirm('Delete?')) return;
+  await supabase.from('experience').delete().eq('id', id);
+  showToast('Deleted.', 'info'); loadExp();
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+  e.preventDefault(); await supabase.auth.signOut(); window.location.href = 'login.html';
+});
+
+(async function() {
+  if (!await checkAuth()) return;
+  await Settings.getAll();
+  loadExp();
+})();
+</script>
+</body>
+</html>

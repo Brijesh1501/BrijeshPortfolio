@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Education — Admin</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-logo"><a href="../index.html">🏠 View Portfolio</a></div>
+    <nav>
+      <a href="dashboard.html" class="admin-nav-item">📊 Dashboard</a>
+      <a href="admin-skills.html" class="admin-nav-item">⚡ Skills</a>
+      <a href="admin-experience.html" class="admin-nav-item">💼 Experience</a>
+      <a href="admin-projects.html" class="admin-nav-item">🚀 Projects</a>
+      <a href="admin-education.html" class="admin-nav-item active">🎓 Education</a>
+      <a href="admin-certifications.html" class="admin-nav-item">🏆 Certifications</a>
+      <a href="admin-settings.html" class="admin-nav-item">⚙️ Settings</a>
+      <a href="#" class="admin-nav-item" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+  <main class="admin-content">
+    <div class="admin-header">
+      <div class="admin-title">🎓 Education</div>
+      <button class="btn btn-primary" onclick="openModal()">+ Add Education</button>
+    </div>
+    <div class="card" id="eduTable">
+      <div class="loading-overlay"><div class="spinner"></div></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add Education</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">Degree *</label><input type="text" class="form-input" id="fDegree" placeholder="Master of Computer Application (MCA)" /></div>
+    <div class="form-group"><label class="form-label">Institution *</label><input type="text" class="form-input" id="fInst" placeholder="Institute of Management Education" /></div>
+    <div class="form-group"><label class="form-label">Location</label><input type="text" class="form-input" id="fLoc" placeholder="Sahibabad" /></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+      <div class="form-group"><label class="form-label">Start Year</label><input type="text" class="form-input" id="fStartY" placeholder="2021" /></div>
+      <div class="form-group"><label class="form-label">End Year *</label><input type="text" class="form-input" id="fEndY" placeholder="2023" /></div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+      <div class="form-group"><label class="form-label">Score</label><input type="text" class="form-input" id="fScore" placeholder="8.32 or 71.86%" /></div>
+      <div class="form-group"><label class="form-label">Score Type</label><select class="form-select" id="fScoreType"><option value="CGPA">CGPA</option><option value="Percentage">Percentage</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Sort Order</label><input type="number" class="form-input" id="fOrder" value="0" /></div>
+    <div style="display:flex; gap:0.75rem; justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdu()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script>
+let editingId = null;
+async function checkAuth() { const { data } = await supabase.auth.getSession(); if (!data.session) { window.location.href = 'login.html'; return false; } return true; }
+
+async function loadEdu() {
+  const { data } = await supabase.from('education').select('*').order('sort_order');
+  const el = document.getElementById('eduTable');
+  if (!data || !data.length) { el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:2rem">No education yet.</div>'; return; }
+  el.innerHTML = `<table class="admin-table"><thead><tr><th>Degree</th><th>Institution</th><th>Year</th><th>Score</th><th>Actions</th></tr></thead><tbody>${data.map(e=>`
+    <tr>
+      <td><strong>${e.degree}</strong></td>
+      <td>${e.institution}<br><span style="font-size:0.7rem;color:var(--text-muted)">${e.location||''}</span></td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.75rem">${e.start_year?e.start_year+' – ':''}${e.end_year}</td>
+      <td><span class="tag tag-accent">${e.score_type}: ${e.score}</span></td>
+      <td><div style="display:flex;gap:0.4rem">
+        <button class="btn btn-outline btn-sm" onclick='editEdu(${JSON.stringify(e).replace(/'/g,"&apos;")})'>Edit</button>
+        <button class="btn btn-sm" style="background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);color:var(--accent-3)" onclick="deleteEdu('${e.id}')">Del</button>
+      </div></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function openModal() { editingId=null; ['fDegree','fInst','fLoc','fStartY','fEndY','fScore'].forEach(f=>document.getElementById(f).value=''); document.getElementById('fOrder').value='0'; document.getElementById('modal').style.display='flex'; }
+function editEdu(e) { editingId=e.id; document.getElementById('fDegree').value=e.degree; document.getElementById('fInst').value=e.institution; document.getElementById('fLoc').value=e.location||''; document.getElementById('fStartY').value=e.start_year||''; document.getElementById('fEndY').value=e.end_year||''; document.getElementById('fScore').value=e.score||''; document.getElementById('fScoreType').value=e.score_type||'CGPA'; document.getElementById('fOrder').value=e.sort_order; document.getElementById('modalTitle').textContent='Edit Education'; document.getElementById('modal').style.display='flex'; }
+function closeModal() { document.getElementById('modal').style.display='none'; editingId=null; }
+async function saveEdu() {
+  const degree=document.getElementById('fDegree').value.trim(), institution=document.getElementById('fInst').value.trim();
+  if(!degree||!institution){showToast('Degree and Institution required.','error');return;}
+  const payload={degree,institution,location:document.getElementById('fLoc').value.trim(),start_year:document.getElementById('fStartY').value.trim()||null,end_year:document.getElementById('fEndY').value.trim(),score:document.getElementById('fScore').value.trim(),score_type:document.getElementById('fScoreType').value,sort_order:parseInt(document.getElementById('fOrder').value)||0};
+  const {error}=editingId?await supabase.from('education').update(payload).eq('id',editingId):await supabase.from('education').insert(payload);
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast('Saved!','success');closeModal();loadEdu();
+}
+async function deleteEdu(id){if(!confirm('Delete?'))return;await supabase.from('education').delete().eq('id',id);showToast('Deleted.','info');loadEdu();}
+document.getElementById('logoutBtn').addEventListener('click',async(e)=>{e.preventDefault();await supabase.auth.signOut();window.location.href='login.html';});
+(async function(){if(!await checkAuth())return;await Settings.getAll();loadEdu();})();
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — Admin</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-logo"><a href="../index.html">🏠 View Portfolio</a></div>
+    <nav>
+      <a href="dashboard.html" class="admin-nav-item">📊 Dashboard</a>
+      <a href="admin-skills.html" class="admin-nav-item">⚡ Skills</a>
+      <a href="admin-experience.html" class="admin-nav-item">💼 Experience</a>
+      <a href="admin-projects.html" class="admin-nav-item">🚀 Projects</a>
+      <a href="admin-education.html" class="admin-nav-item">🎓 Education</a>
+      <a href="admin-certifications.html" class="admin-nav-item">🏆 Certifications</a>
+      <a href="admin-settings.html" class="admin-nav-item active">⚙️ Settings</a>
+      <a href="#" class="admin-nav-item" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+  <main class="admin-content">
+    <div class="admin-header">
+      <div class="admin-title">⚙️ Portfolio Settings</div>
+    </div>
+    
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(440px,1fr)); gap:1.5rem" id="settingsSections">
+      <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div></div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script>
+async function checkAuth() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) { window.location.href = 'login.html'; return false; }
+  return true;
+}
+
+async function saveSetting(key, value) {
+  const { error } = await Settings.update(key, value);
+  if (error) { showToast('Error saving: ' + error.message, 'error'); return false; }
+  Settings.cache[key] = value;
+  showToast('Saved!', 'success');
+  return true;
+}
+
+function buildSection(title, fields) {
+  return `
+    <div class="card">
+      <h3 style="font-family:'Syne',sans-serif; font-size:1rem; margin-bottom:1.5rem; color:var(--accent)">${title}</h3>
+      ${fields.map(f => `
+        <div class="form-group">
+          <label class="form-label">${f.label}</label>
+          ${f.type === 'textarea' 
+            ? `<textarea class="form-textarea" id="s_${f.key}" style="min-height:100px">${Settings.get(f.key)}</textarea>`
+            : `<input type="${f.type || 'text'}" class="form-input" id="s_${f.key}" value="${Settings.get(f.key)}" placeholder="${f.placeholder || ''}" />`
+          }
+        </div>
+      `).join('')}
+      <button class="btn btn-primary btn-sm" onclick="saveSection(${JSON.stringify(fields.map(f=>f.key))})">Save Changes</button>
+    </div>
+  `;
+}
+
+async function saveSection(keys) {
+  for (const key of keys) {
+    const el = document.getElementById('s_' + key);
+    if (el) await saveSetting(key, el.value.trim());
+  }
+  
+  // Apply theme immediately if it's in the keys
+  if (keys.includes('theme')) {
+    ThemeManager.apply(document.getElementById('s_theme').value || 'dark');
+  }
+}
+
+(async function() {
+  if (!await checkAuth()) return;
+  await Settings.getAll();
+  
+  const el = document.getElementById('settingsSections');
+  el.innerHTML = `
+    ${buildSection('🎨 Theme & Appearance', [
+      { key: 'theme', label: 'Default Theme (dark / light)', placeholder: 'dark' },
+    ])}
+    
+    ${buildSection('👤 Personal Info', [
+      { key: 'hero_title', label: 'Your Name' },
+      { key: 'hero_subtitle', label: 'Job Title / Role' },
+      { key: 'hero_tagline', label: 'Hero Tagline' },
+      { key: 'location', label: 'Location' },
+    ])}
+    
+    ${buildSection('📞 Contact Details', [
+      { key: 'email', label: 'Email Address', type: 'email' },
+      { key: 'phone', label: 'Phone Number' },
+      { key: 'linkedin', label: 'LinkedIn URL', type: 'url' },
+    ])}
+    
+    ${buildSection('📄 Resume', [
+      { key: 'resume_url', label: 'Resume PDF URL (Google Drive direct link or Supabase Storage URL)', type: 'url', placeholder: 'https://drive.google.com/...' },
+    ])}
+    
+    ${buildSection('📝 About Text', [
+      { key: 'about_text', label: 'About Me Paragraph', type: 'textarea' },
+    ])}
+  `;
+  
+  document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+    e.preventDefault(); await supabase.auth.signOut(); window.location.href = 'login.html';
+  });
+})();
+</script>
+</body>
+</html>

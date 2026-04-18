@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resume — Brijesh Kumar Pal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="../index.html" class="nav-logo">
+    <span class="accent mono">&lt;</span>BKP<span class="accent mono">/&gt;</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html" class="nav-link">Home</a></li>
+    <li><a href="about.html" class="nav-link">About</a></li>
+    <li><a href="projects.html" class="nav-link">Projects</a></li>
+    <li><a href="contact.html" class="nav-link">Contact</a></li>
+    <li><a href="resume.html" class="nav-link">Resume</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <button class="hamburger" id="hamburger">☰</button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="about.html" class="nav-link">About & Skills</a>
+  <a href="projects.html" class="nav-link">Projects</a>
+  <a href="contact.html" class="nav-link">Contact</a>
+  <a href="resume.html" class="nav-link">Resume</a>
+</div>
+
+<div class="page-wrapper">
+
+  <div style="background: var(--bg-secondary); padding: 4rem 2rem 3rem; border-bottom: 1px solid var(--border-subtle);">
+    <div style="max-width: 1200px; margin: 0 auto; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem">
+      <div>
+        <div class="section-label">My CV</div>
+        <h1 class="section-title">Resume</h1>
+      </div>
+      <div id="downloadActions" style="display:flex; gap:0.75rem; flex-wrap:wrap">
+        <!-- Buttons rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div id="resumeContent">
+      <div class="loading-overlay"><div class="spinner"></div> Loading...</div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <div class="footer-links">
+    <a href="../index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="projects.html">Projects</a>
+    <a href="contact.html">Contact</a>
+    <a href="resume.html">Resume</a>
+  </div>
+  <div>© 2025 Brijesh Kumar Pal</div>
+</footer>
+
+<script src="../js/config.js"></script>
+<script>
+(async function() {
+  const settings = await Settings.getAll();
+  const resumeUrl = settings.resume_url;
+  
+  const actionsEl = document.getElementById('downloadActions');
+  const contentEl = document.getElementById('resumeContent');
+  
+  if (resumeUrl) {
+    actionsEl.innerHTML = `
+      <a href="${resumeUrl}" download class="btn btn-primary">Download PDF ↓</a>
+      <a href="${resumeUrl}" target="_blank" class="btn btn-outline">Open in New Tab ↗</a>
+    `;
+    contentEl.innerHTML = `
+      <div class="resume-embed">
+        <iframe src="${resumeUrl}" title="Resume"></iframe>
+      </div>
+    `;
+  } else {
+    // Show built-in resume view from DB data
+    actionsEl.innerHTML = `<a href="contact.html" class="btn btn-primary">Request Resume ✉</a>`;
+    
+    const [{ data: exp }, { data: edu }, { data: skills }, { data: certs }] = await Promise.all([
+      supabase.from('experience').select('*').order('sort_order'),
+      supabase.from('education').select('*').order('sort_order'),
+      supabase.from('skills').select('*').order('sort_order'),
+      supabase.from('certifications').select('*').order('sort_order')
+    ]);
+    
+    contentEl.innerHTML = `
+      <div style="max-width:800px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:20px; padding:3rem; margin:0 auto">
+        
+        <!-- Header -->
+        <div style="text-align:center; border-bottom:1px solid var(--border-subtle); padding-bottom:2rem; margin-bottom:2rem">
+          <h1 style="font-family:'Syne',sans-serif; font-size:2.5rem; font-weight:800; margin-bottom:0.5rem">Brijesh Kumar Pal</h1>
+          <div style="color:var(--accent); font-family:'Space Mono',monospace; font-size:0.8rem; margin-bottom:0.75rem">Data Research Analyst & Web Developer</div>
+          <div style="display:flex; justify-content:center; gap:1.5rem; flex-wrap:wrap; font-size:0.8rem; color:var(--text-secondary)">
+            ${settings.email ? `<span>✉ ${settings.email}</span>` : ''}
+            ${settings.phone ? `<span>📱 ${settings.phone}</span>` : ''}
+            <span>📍 ${settings.location || 'Ghaziabad, India'}</span>
+            ${settings.linkedin ? `<span><a href="${settings.linkedin}" style="color:var(--accent); text-decoration:none">💼 LinkedIn</a></span>` : ''}
+          </div>
+        </div>
+        
+        <!-- Experience -->
+        <div style="margin-bottom:2rem">
+          <h2 style="font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--accent); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.75rem">
+            WORK EXPERIENCE
+            <span style="flex:1; height:1px; background:var(--border)"></span>
+          </h2>
+          ${(exp || []).map(e => `
+            <div style="margin-bottom:1.5rem">
+              <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.25rem">
+                <strong style="font-family:'Syne',sans-serif">${e.role}</strong>
+                <span style="font-family:'Space Mono',monospace; font-size:0.7rem; color:var(--text-muted)">${formatDate(e.start_date)} – ${e.is_current ? 'Present' : formatDate(e.end_date)}</span>
+              </div>
+              <div style="color:var(--accent-2); font-size:0.85rem; margin-bottom:0.5rem">${e.company} · ${e.location || ''}</div>
+              <ul style="list-style:none; padding:0">
+                ${(e.description || []).map(d => `<li style="font-size:0.85rem; color:var(--text-secondary); padding-left:1rem; position:relative; margin-bottom:0.25rem"><span style="position:absolute; left:0; color:var(--accent)">▸</span>${d}</li>`).join('')}
+              </ul>
+            </div>
+          `).join('')}
+        </div>
+        
+        <!-- Education -->
+        <div style="margin-bottom:2rem">
+          <h2 style="font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--accent); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.75rem">
+            EDUCATION
+            <span style="flex:1; height:1px; background:var(--border)"></span>
+          </h2>
+          ${(edu || []).map(e => `
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem">
+              <div>
+                <strong style="font-size:0.9rem">${e.degree}</strong>
+                <div style="color:var(--text-secondary); font-size:0.8rem">${e.institution}</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-family:'Space Mono',monospace; font-size:0.7rem; color:var(--text-muted)">${e.start_year ? e.start_year + ' – ' : ''}${e.end_year}</div>
+                <div style="font-size:0.75rem; color:var(--accent)">${e.score_type}: ${e.score}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        
+        <!-- Skills -->
+        <div style="margin-bottom:2rem">
+          <h2 style="font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--accent); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.75rem">
+            SKILLS
+            <span style="flex:1; height:1px; background:var(--border)"></span>
+          </h2>
+          <div style="display:flex; flex-wrap:wrap; gap:0.4rem">
+            ${(skills || []).map(s => `<span class="tag">${s.icon || ''} ${s.name}</span>`).join('')}
+          </div>
+        </div>
+        
+        <!-- Certifications -->
+        <div>
+          <h2 style="font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--accent); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.75rem">
+            CERTIFICATIONS
+            <span style="flex:1; height:1px; background:var(--border)"></span>
+          </h2>
+          ${(certs || []).map(c => `
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
+              <span style="font-size:0.875rem">🏆 ${c.name} — ${c.issuer}</span>
+              <span style="font-family:'Space Mono',monospace; font-size:0.7rem; color:var(--text-muted)">${c.year || ''}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  setActiveNav();
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('mobileMenu').classList.toggle('open');
+  });
+  
+  const themeBtn = document.getElementById('themeToggle');
+  themeBtn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '🌙' : '☀️';
+  themeBtn.addEventListener('click', async () => {
+    const curr = document.documentElement.getAttribute('data-theme');
+    const next = curr === 'dark' ? 'light' : 'dark';
+    ThemeManager.apply(next);
+    themeBtn.textContent = next === 'dark' ? '🌙' : '☀️';
+    await Settings.update('theme', next);
+  });
+})();
+</script>
+</body>
+</html>

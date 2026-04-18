@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Projects — Admin</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-logo"><a href="../index.html">🏠 View Portfolio</a></div>
+    <nav>
+      <a href="dashboard.html" class="admin-nav-item">📊 Dashboard</a>
+      <a href="admin-skills.html" class="admin-nav-item">⚡ Skills</a>
+      <a href="admin-experience.html" class="admin-nav-item">💼 Experience</a>
+      <a href="admin-projects.html" class="admin-nav-item active">🚀 Projects</a>
+      <a href="admin-education.html" class="admin-nav-item">🎓 Education</a>
+      <a href="admin-certifications.html" class="admin-nav-item">🏆 Certifications</a>
+      <a href="admin-settings.html" class="admin-nav-item">⚙️ Settings</a>
+      <a href="#" class="admin-nav-item" id="logoutBtn">🚪 Logout</a>
+    </nav>
+  </aside>
+  <main class="admin-content">
+    <div class="admin-header">
+      <div class="admin-title">🚀 Manage Projects</div>
+      <button class="btn btn-primary" onclick="openModal()">+ Add Project</button>
+    </div>
+    <div class="card" id="projectsTable">
+      <div class="loading-overlay"><div class="spinner"></div></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add Project</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Project Title *</label>
+      <input type="text" class="form-input" id="fTitle" placeholder="My Awesome Project" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="fDesc" placeholder="What does this project do?" style="min-height:100px"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tags (comma-separated)</label>
+      <input type="text" class="form-input" id="fTags" placeholder="HTML, CSS, Python, Data Analysis" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Live URL</label>
+      <input type="url" class="form-input" id="fLive" placeholder="https://my-project.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">GitHub URL</label>
+      <input type="url" class="form-input" id="fGithub" placeholder="https://github.com/username/repo" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Image URL (optional)</label>
+      <input type="url" class="form-input" id="fImage" placeholder="https://example.com/image.jpg" />
+    </div>
+    <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem">
+      <input type="checkbox" id="fFeatured" style="width:16px; height:16px; accent-color:var(--accent)" />
+      <label for="fFeatured" style="font-size:0.875rem; color:var(--text-secondary); cursor:pointer">Mark as Featured</label>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sort Order</label>
+      <input type="number" class="form-input" id="fOrder" value="0" />
+    </div>
+    <div style="display:flex; gap:0.75rem; justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script>
+let editingId = null;
+
+async function checkAuth() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) { window.location.href = 'login.html'; return false; }
+  return true;
+}
+
+async function loadProjects() {
+  const { data } = await supabase.from('projects').select('*').order('sort_order');
+  const el = document.getElementById('projectsTable');
+  if (!data || data.length === 0) {
+    el.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:2rem">No projects yet.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table class="admin-table">
+      <thead><tr><th>Title</th><th>Tags</th><th>Links</th><th>Featured</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${data.map(p => `
+          <tr>
+            <td><strong>${p.title}</strong><br><span style="font-size:0.75rem; color:var(--text-muted)">${(p.description||'').substring(0,60)}...</span></td>
+            <td><div style="display:flex; flex-wrap:wrap; gap:0.25rem">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div></td>
+            <td style="font-size:0.75rem">
+              ${p.live_url ? `<a href="${p.live_url}" target="_blank" style="color:var(--accent)">Live ↗</a><br>` : ''}
+              ${p.github_url ? `<a href="${p.github_url}" target="_blank" style="color:var(--accent)">GitHub ↗</a>` : ''}
+            </td>
+            <td>${p.featured ? '⭐' : '—'}</td>
+            <td>
+              <div style="display:flex; gap:0.4rem">
+                <button class="btn btn-outline btn-sm" onclick="editProject(${JSON.stringify(p).replace(/"/g,'&quot;')})">Edit</button>
+                <button class="btn btn-sm" style="background:rgba(255,107,107,0.1); border:1px solid rgba(255,107,107,0.3); color:var(--accent-3)" onclick="deleteProject('${p.id}')">Del</button>
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function openModal() {
+  editingId = null;
+  ['fTitle','fDesc','fTags','fLive','fGithub','fImage'].forEach(f => document.getElementById(f).value = '');
+  document.getElementById('fFeatured').checked = false;
+  document.getElementById('fOrder').value = '0';
+  document.getElementById('modalTitle').textContent = 'Add Project';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function editProject(p) {
+  editingId = p.id;
+  document.getElementById('fTitle').value = p.title;
+  document.getElementById('fDesc').value = p.description || '';
+  document.getElementById('fTags').value = (p.tags||[]).join(', ');
+  document.getElementById('fLive').value = p.live_url || '';
+  document.getElementById('fGithub').value = p.github_url || '';
+  document.getElementById('fImage').value = p.image_url || '';
+  document.getElementById('fFeatured').checked = p.featured;
+  document.getElementById('fOrder').value = p.sort_order;
+  document.getElementById('modalTitle').textContent = 'Edit Project';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('modal').style.display = 'none'; editingId = null; }
+
+async function saveProject() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) { showToast('Title is required.', 'error'); return; }
+  
+  const tags = document.getElementById('fTags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const payload = {
+    title,
+    description: document.getElementById('fDesc').value.trim(),
+    tags,
+    live_url: document.getElementById('fLive').value.trim() || null,
+    github_url: document.getElementById('fGithub').value.trim() || null,
+    image_url: document.getElementById('fImage').value.trim() || null,
+    featured: document.getElementById('fFeatured').checked,
+    sort_order: parseInt(document.getElementById('fOrder').value) || 0,
+  };
+  
+  const { error } = editingId
+    ? await supabase.from('projects').update(payload).eq('id', editingId)
+    : await supabase.from('projects').insert(payload);
+  
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('Project saved!', 'success');
+  closeModal(); loadProjects();
+}
+
+async function deleteProject(id) {
+  if (!confirm('Delete this project?')) return;
+  await supabase.from('projects').delete().eq('id', id);
+  showToast('Deleted.', 'info'); loadProjects();
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+  e.preventDefault(); await supabase.auth.signOut(); window.location.href = 'login.html';
+});
+
+(async function() {
+  if (!await checkAuth()) return;
+  await Settings.getAll();
+  loadProjects();
+})();
+</script>
+</body>
+</html>

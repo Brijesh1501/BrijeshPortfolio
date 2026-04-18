@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projects — Brijesh Kumar Pal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="../index.html" class="nav-logo">
+    <span class="accent mono">&lt;</span>BKP<span class="accent mono">/&gt;</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html" class="nav-link">Home</a></li>
+    <li><a href="about.html" class="nav-link">About</a></li>
+    <li><a href="projects.html" class="nav-link">Projects</a></li>
+    <li><a href="contact.html" class="nav-link">Contact</a></li>
+    <li><a href="resume.html" class="nav-link">Resume</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <button class="hamburger" id="hamburger">☰</button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="about.html" class="nav-link">About & Skills</a>
+  <a href="projects.html" class="nav-link">Projects</a>
+  <a href="contact.html" class="nav-link">Contact</a>
+  <a href="resume.html" class="nav-link">Resume</a>
+</div>
+
+<div class="page-wrapper">
+
+  <div style="background: var(--bg-secondary); padding: 4rem 2rem 3rem; border-bottom: 1px solid var(--border-subtle);">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <div class="section-label">My Work</div>
+      <h1 class="section-title">Projects & <span>Builds</span></h1>
+      <p style="color:var(--text-secondary); margin-top:0.75rem; font-size:0.95rem; max-width:560px">
+        A collection of web development and data projects showcasing technical skills and analytical thinking.
+      </p>
+    </div>
+  </div>
+
+  <!-- FILTER TABS -->
+  <div style="padding: 2rem 2rem 0; max-width:1200px; margin:0 auto;">
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;" id="filterBar">
+      <button class="btn btn-primary btn-sm filter-btn active" data-filter="all">All Projects</button>
+    </div>
+  </div>
+
+  <!-- PROJECTS GRID -->
+  <section class="section" style="padding-top: 1.5rem;">
+    <div class="projects-grid" id="projectsGrid">
+      <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div> Loading projects...</div>
+    </div>
+  </section>
+  
+  <!-- CTA -->
+  <div style="text-align:center; padding: 0 2rem 5rem; color:var(--text-secondary);">
+    <div class="card reveal" style="max-width:500px; margin:0 auto; text-align:center">
+      <div style="font-size:2rem; margin-bottom:1rem">💼</div>
+      <h3 style="font-family:'Syne',sans-serif; margin-bottom:0.75rem">Interested in collaborating?</h3>
+      <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:1.5rem">
+        I'm always open to discussing new projects, data analysis opportunities, or partnerships.
+      </p>
+      <a href="contact.html" class="btn btn-primary">Get In Touch ↗</a>
+    </div>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <div class="footer-links">
+    <a href="../index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="projects.html">Projects</a>
+    <a href="contact.html">Contact</a>
+    <a href="resume.html">Resume</a>
+  </div>
+  <div>© 2025 Brijesh Kumar Pal</div>
+</footer>
+
+<script src="../js/config.js"></script>
+<script>
+const PROJECT_ICONS = ['💼', '🌐', '📊', '🔍', '⚡', '🚀', '🎯', '🛠️'];
+
+(async function() {
+  await Settings.getAll();
+  
+  const { data: projects } = await supabase
+    .from('projects')
+    .select('*')
+    .order('sort_order');
+  
+  const grid = document.getElementById('projectsGrid');
+  const filterBar = document.getElementById('filterBar');
+  
+  if (!projects || projects.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:3rem">No projects yet.</div>';
+    return;
+  }
+  
+  // Build filter tags from all tags
+  const allTags = new Set();
+  projects.forEach(p => (p.tags || []).forEach(t => allTags.add(t)));
+  
+  allTags.forEach(tag => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-outline btn-sm filter-btn';
+    btn.dataset.filter = tag;
+    btn.textContent = tag;
+    filterBar.appendChild(btn);
+  });
+  
+  function renderProjects(filter) {
+    const filtered = filter === 'all' ? projects : projects.filter(p => (p.tags||[]).includes(filter));
+    grid.innerHTML = filtered.map((p, i) => `
+      <div class="project-card reveal" style="animation-delay:${i*0.1}s">
+        <div class="project-img">
+          <span style="position:relative; z-index:1; font-size:3.5rem">${p.image_url ? '' : PROJECT_ICONS[i % PROJECT_ICONS.length]}</span>
+          ${p.featured ? `<div style="position:absolute; top:0.75rem; right:0.75rem; z-index:2;"><span class="tag tag-accent">⭐ Featured</span></div>` : ''}
+        </div>
+        <div class="project-body">
+          <h3 class="project-title">${p.title}</h3>
+          <p class="project-desc">${p.description || ''}</p>
+          <div class="project-tags">
+            ${(p.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}
+          </div>
+          <div class="project-links">
+            ${p.live_url ? `<a href="${p.live_url}" target="_blank" class="btn btn-primary btn-sm">Live Demo ↗</a>` : ''}
+            ${p.github_url ? `<a href="${p.github_url}" target="_blank" class="btn btn-outline btn-sm">GitHub ↗</a>` : ''}
+            ${!p.live_url && !p.github_url ? `<span style="font-size:0.75rem; color:var(--text-muted); font-family:'Space Mono',monospace">Private Project</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Re-observe for animations
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  }
+  
+  renderProjects('all');
+  
+  // Filter click
+  filterBar.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.className = 'btn btn-outline btn-sm filter-btn';
+    });
+    btn.className = 'btn btn-primary btn-sm filter-btn active';
+    renderProjects(btn.dataset.filter);
+  });
+  
+  setActiveNav();
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('mobileMenu').classList.toggle('open');
+  });
+  
+  const themeBtn = document.getElementById('themeToggle');
+  themeBtn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '🌙' : '☀️';
+  themeBtn.addEventListener('click', async () => {
+    const curr = document.documentElement.getAttribute('data-theme');
+    const next = curr === 'dark' ? 'light' : 'dark';
+    ThemeManager.apply(next);
+    themeBtn.textContent = next === 'dark' ? '🌙' : '☀️';
+    await Settings.update('theme', next);
+  });
+})();
+</script>
+</body>
+</html>
